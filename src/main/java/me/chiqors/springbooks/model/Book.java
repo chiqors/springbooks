@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter @Setter
@@ -24,10 +25,10 @@ public class Book {
     private int stock;
 
     @Column(name = "published_at")
-    private String publishedAt;
+    private LocalDate publishedAt;
 
     @Column(name = "registered_at")
-    private String registeredAt;
+    private LocalDate registeredAt;
 
     @Column(name = "deleted")
     private boolean deleted;
@@ -41,14 +42,6 @@ public class Book {
 
     // Default constructor is required by JPA
     public Book() {}
-
-    public Book(String title, String author, int stock, String publishedAt, String registeredAt) {
-        this.title = title;
-        this.author = author;
-        this.stock = stock;
-        this.publishedAt = publishedAt;
-        this.registeredAt = registeredAt;
-    }
 
     @Override
     public String toString() {

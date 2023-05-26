@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter @Setter
@@ -24,7 +25,10 @@ public class Member {
     private String phone;
 
     @Column(name = "registered_at")
-    private String registeredAt;
+    private LocalDate registeredAt;
+
+    @Column(name = "deleted")
+    private boolean deleted;
 
     // -------------- Out Relationships --------------
 
@@ -44,7 +48,8 @@ public class Member {
         content += "name=" + name + ", ";
         content += "email=" + email + ", ";
         content += "phone=" + phone + ", ";
-        content += "registeredAt=" + registeredAt + "]";
+        content += "registeredAt=" + registeredAt + ", ";
+        content += "deleted=" + deleted + "]";
         return content;
     }
 }

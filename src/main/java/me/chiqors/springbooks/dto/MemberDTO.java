@@ -9,12 +9,11 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookDTO {
+public class MemberDTO {
     private long id;
-    private String title;
-    private String author;
-    private int stock;
-    private LocalDate publishedAt;
+    private String name;
+    private String email;
+    private String phone;
     private LocalDate registeredAt;
-    private boolean deleted;
+    private String deleted;
 }

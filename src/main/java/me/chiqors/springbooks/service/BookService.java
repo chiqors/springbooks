@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,17 +36,10 @@ public class BookService {
     public List<BookDTO> getAllBooks(String title) {
         List<Book> books;
         if (title == null) {
-            books = bookRepository.findAll();
+            books = bookRepository.findAllBooksByDeletedIsFalse();
         } else {
-            books = bookRepository.findByTitleContaining(title);
+            books = bookRepository.findByTitleContainingAndDeletedIsFalse(title);
         }
-        return books.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
-    public List<BookDTO> getPagedBooks(int page, int size) {
-        List<Book> books = bookRepository.findAll(PageRequest.of(page, size)).toList();
         return books.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -59,16 +54,19 @@ public class BookService {
     }
 
     public BookDTO addBook(BookDTO bookDTO) {
-        Book book = new Book(
-                bookDTO.getTitle(),
-                bookDTO.getAuthor(),
-                bookDTO.getStock(),
-                bookDTO.getPublishedAt(),
-                bookDTO.getRegisteredAt()
-        );
+        Book book = new Book();
+        book.setTitle(bookDTO.getTitle());
+        book.setAuthor(bookDTO.getAuthor());
+        book.setStock(bookDTO.getStock());
+        book.setPublishedAt(bookDTO.getPublishedAt());
+        book.setRegisteredAt(bookDTO.getRegisteredAt());
+        book.setDeleted(false);
+
         book = bookRepository.save(book);
+
         return convertToDTO(book);
     }
+
 
     public BookDTO updateBook(long id, BookDTO bookDTO) {
         Book book = bookRepository.findById(id).orElse(null);
@@ -84,13 +82,13 @@ public class BookService {
         return null;
     }
 
-    public BookDTO deleteBook(long id) {
+    public boolean deleteBook(long id) {
         Book book = bookRepository.findById(id).orElse(null);
         if (book != null) {
             book.setDeleted(true);
-            book = bookRepository.save(book);
-            return convertToDTO(book);
+            bookRepository.save(book);
+            return true;
         }
-        return null;
+        return false;
     }
 }
