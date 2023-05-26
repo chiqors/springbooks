@@ -24,9 +24,6 @@ public class DetailTransaction {
     @Column(name = "total")
     private int total;
 
-    @Column(name = "snapshot")
-    private String snapshot;
-
     // -------------- Methods --------------
 
     @Override
@@ -36,7 +33,6 @@ public class DetailTransaction {
         content += ", transaction=" + transaction;
         content += ", book=" + book;
         content += ", total=" + total;
-        content += ", snapshot=" + snapshot;
         return content;
     }
 }

@@ -30,9 +30,6 @@ public class Transaction {
     @JoinColumn(name = "member_id")
     private Member member;
 
-    @Column(name = "member_name")
-    private String memberName;
-
     @Column(name = "status")
     private String status;
 
@@ -68,7 +65,6 @@ public class Transaction {
         content += "actReturnedAt=" + actReturnedAt + ", ";
         content += "returnedAt=" + returnedAt + ", ";
         content += "member=" + memberContent + ", ";
-        content += "memberName=" + memberName + ", ";
         content += "status=" + status + ", ";
         content += "totalBooks=" + totalBooks + ", ";
         content += "operatorName=" + operatorName + ", ";

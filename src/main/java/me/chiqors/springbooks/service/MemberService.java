@@ -4,8 +4,10 @@ import me.chiqors.springbooks.dto.MemberDTO;
 import me.chiqors.springbooks.model.Member;
 import me.chiqors.springbooks.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,12 +31,25 @@ public class MemberService {
         return memberDTO;
     }
 
-    public List<MemberDTO> getAllMembers(String name) {
+    public List<MemberDTO> getAllMembers(String name, String sort, int page, int size) {
         List<Member> members;
+
         if (name != null) {
             members = memberRepository.findByNameContainingAndDeletedIsFalse(name);
         } else {
             members = memberRepository.findAllMembersByDeletedIsFalse();
+        }
+
+        if (sort != null) {
+            if (sort.equals("asc")) {
+                members.sort(Comparator.comparing(Member::getName));
+            } else if (sort.equals("desc")) {
+                members.sort(Comparator.comparing(Member::getName).reversed());
+            }
+        }
+
+        if (page >= 0 && size > 0) {
+            members = memberRepository.findAll(PageRequest.of(page, size)).toList();
         }
 
         return members.stream().map(this::convertToDTO).collect(Collectors.toList());

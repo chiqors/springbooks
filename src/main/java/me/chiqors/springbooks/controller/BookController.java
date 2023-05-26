@@ -21,10 +21,21 @@ public class BookController {
         this.bookService = bookService;
     }
 
+    /**
+     * Retrieves all books based on optional filtering, sorting, and pagination parameters.
+     * @param title    Optional parameter to filter books by title.
+     * @param sort    Optional parameter to specify the sorting order (e.g., "asc" or "desc").
+     * @param page    Optional parameter to specify the page number for pagination.
+     * @param size    Optional parameter to specify the page size for pagination.
+     * @return ResponseEntity containing a list of BookDTOs and an HTTP status code.
+     */
     @GetMapping("/books")
-    public ResponseEntity<?> getAllBooks(@RequestParam(required = false) String title) {
+    public ResponseEntity<?> getAllBooks(@RequestParam(required = false) String title,
+                                         @RequestParam(required = false) String sort,
+                                         @RequestParam(required = false) Integer page,
+                                         @RequestParam(required = false) Integer size) {
         try {
-            List<BookDTO> bookDTOs = bookService.getAllBooks(title);
+            List<BookDTO> bookDTOs = bookService.getAllBooks(title, sort, page, size);
             return new ResponseEntity<>(bookDTOs, HttpStatus.OK);
         } catch (Exception e) {
             String errorMessage = "Failed to retrieve books";
@@ -32,6 +43,11 @@ public class BookController {
         }
     }
 
+    /**
+     * Retrieves a book by ID.
+     * @param id    ID of the book to retrieve.
+     * @return ResponseEntity containing a BookDTO and an HTTP status code.
+     */
     @GetMapping("/book/{id}")
     public ResponseEntity<?> getBookById(@PathVariable("id") long id) {
         try {
@@ -48,6 +64,11 @@ public class BookController {
         }
     }
 
+    /**
+     * Creates a new book.
+     * @param bookDTO    BookDTO containing the book information to create.
+     * @return ResponseEntity containing a BookDTO and an HTTP status code.
+     */
     @PostMapping("/books")
     public ResponseEntity<?> createBook(@RequestBody BookDTO bookDTO) {
         try {
@@ -59,6 +80,12 @@ public class BookController {
         }
     }
 
+    /**
+     * Updates a book by ID.
+     * @param id    ID of the book to update.
+     * @param bookDTO    BookDTO containing the book information to update.
+     * @return ResponseEntity containing a BookDTO and an HTTP status code.
+     */
     @PutMapping("/books/{id}")
     public ResponseEntity<?> updateBook(@PathVariable("id") long id, @RequestBody BookDTO bookDTO) {
         try {
@@ -75,6 +102,11 @@ public class BookController {
         }
     }
 
+    /**
+     * Deletes a book by ID.
+     * @param id    ID of the book to delete.
+     * @return ResponseEntity containing a message and an HTTP status code.
+     */
     @DeleteMapping("/books/{id}")
     public ResponseEntity<?> destroyBook(@PathVariable("id") long id) {
         try {

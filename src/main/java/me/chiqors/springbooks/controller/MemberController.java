@@ -20,10 +20,23 @@ public class MemberController {
         this.memberService = memberService;
     }
 
+
+    /**
+     * Retrieves all members based on optional filtering, sorting, and pagination parameters.
+     *
+     * @param name    Optional parameter to filter members by name.
+     * @param sort    Optional parameter to specify the sorting order (e.g., "asc" or "desc").
+     * @param page    Optional parameter to specify the page number for pagination.
+     * @param size    Optional parameter to specify the page size for pagination.
+     * @return ResponseEntity containing a list of MemberDTOs and an HTTP status code.
+     */
     @GetMapping("/members")
-    public ResponseEntity<?> getAllMembers(@RequestParam(required = false) String name) {
+    public ResponseEntity<?> getAllMembers(@RequestParam(required = false) String name,
+                                           @RequestParam(required = false) String sort,
+                                           @RequestParam(required = false) Integer page,
+                                           @RequestParam(required = false) Integer size) {
         try {
-            List<MemberDTO> memberDTOs = memberService.getAllMembers(name);
+            List<MemberDTO> memberDTOs = memberService.getAllMembers(name, sort, page, size);
             return new ResponseEntity<>(memberDTOs, HttpStatus.OK);
         } catch (Exception e) {
             String errorMessage = "Failed to retrieve members";
@@ -67,11 +80,16 @@ public class MemberController {
     @DeleteMapping("/members/{id}")
     public ResponseEntity<?> deleteMember(@PathVariable("id") Long id) {
         try {
-            memberService.deleteMember(id);
-            String successMessage = "Member deleted successfully";
-            return new ResponseEntity<>(successMessage, HttpStatus.OK);
+            boolean isDeleted = memberService.deleteMember(id);
+            if (isDeleted) {
+                String successMessage = "Member with id: " + id + " deleted";
+                return new ResponseEntity<>(successMessage, HttpStatus.OK);
+            } else {
+                String errorMessage = "Failed to delete member with id: " + id;
+                return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         } catch (Exception e) {
-            String errorMessage = "Failed to delete member";
+            String errorMessage = "Failed to delete member with id: " + id;
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

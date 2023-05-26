@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,16 +34,27 @@ public class BookService {
         return bookDTO;
     }
 
-    public List<BookDTO> getAllBooks(String title) {
+    public List<BookDTO> getAllBooks(String title, String sort, int page, int size) {
         List<Book> books;
-        if (title == null) {
-            books = bookRepository.findAllBooksByDeletedIsFalse();
-        } else {
+        if (title != null) {
             books = bookRepository.findByTitleContainingAndDeletedIsFalse(title);
+        } else {
+            books = bookRepository.findAllBooksByDeletedIsFalse();
         }
-        return books.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+
+        if (sort != null) {
+            if (sort.equals("asc")) {
+                books.sort(Comparator.comparing(Book::getTitle));
+            } else if (sort.equals("desc")) {
+                books.sort(Comparator.comparing(Book::getTitle).reversed());
+            }
+        }
+
+        if (page >= 0 && size > 0) {
+            books = bookRepository.findAll(PageRequest.of(page, size)).toList();
+        }
+
+        return books.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     public BookDTO getBookById(long id) {
