@@ -1,12 +1,13 @@
 package me.chiqors.springbooks.service;
 
+import me.chiqors.springbooks.dto.DetailTransactionDTO;
+import me.chiqors.springbooks.dto.MemberDTO;
+import me.chiqors.springbooks.dto.TransactionCreateDTO;
 import me.chiqors.springbooks.dto.TransactionDTO;
 import me.chiqors.springbooks.model.Member;
 import me.chiqors.springbooks.model.Transaction;
 
-import me.chiqors.springbooks.repository.MemberRepository;
 import me.chiqors.springbooks.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -16,118 +17,109 @@ import java.util.stream.Collectors;
 @Service
 public class TransactionService {
     private final TransactionRepository transactionRepository;
-    private final MemberRepository memberRepository;
+    private final DetailTransactionService detailTransactionService;
+    private final MemberService memberService;
 
-    @Autowired
-    public TransactionService(TransactionRepository transactionRepository, MemberRepository memberRepository) {
+    public TransactionService(TransactionRepository transactionRepository, DetailTransactionService detailTransactionService, MemberService memberService) {
         this.transactionRepository = transactionRepository;
-        this.memberRepository = memberRepository;
+        this.detailTransactionService = detailTransactionService;
+        this.memberService = memberService;
     }
 
-    public TransactionDTO convertToDTO(Transaction transaction) {
-        TransactionDTO transactionDTO = new TransactionDTO();
-        transactionDTO.setId(transaction.getId());
-        transactionDTO.setTransactionCode(transaction.getTransactionCode());
-        transactionDTO.setBorrowedAt(transaction.getBorrowedAt());
-        transactionDTO.setActReturnedAt(transaction.getActReturnedAt());
-        transactionDTO.setReturnedAt(transaction.getReturnedAt());
-        transactionDTO.setMemberId(transaction.getMember().getId());
-        transactionDTO.setStatus(transaction.getStatus());
-        transactionDTO.setTotalBooks(transaction.getDetailTransactions().size());
-        transactionDTO.setOperatorName(transaction.getOperatorName());
-        transactionDTO.setTotalFines(transaction.getTotalFines());
+    private TransactionDTO convertToDTO(Transaction transaction, List<DetailTransactionDTO> detailTransactions) {
+        TransactionDTO dto = new TransactionDTO();
+        dto.setId(transaction.getId());
+        dto.setTransactionCode(transaction.getTransactionCode());
+        dto.setBorrowedAt(transaction.getBorrowedAt());
+        dto.setActReturnedAt(transaction.getActReturnedAt());
+        dto.setReturnedAt(transaction.getReturnedAt());
+        dto.setMemberId(transaction.getMember().getId());
+        dto.setStatus(transaction.getStatus());
+        dto.setTotalBooks(transaction.getTotalBooks());
+        dto.setOperatorName(transaction.getOperatorName());
+        dto.setTotalFines(transaction.getTotalFines());
 
-        return transactionDTO;
+        // Map detail transactions to DTOs if needed
+        if (detailTransactions != null) {
+            dto.setDetailTransactions(detailTransactions);
+        }
+
+        return dto;
+    }
+
+    private MemberDTO convertToMemberDTO(Member member) {
+        return getMemberDTO(member);
+    }
+
+    static MemberDTO getMemberDTO(Member member) {
+        MemberDTO memberDTO = new MemberDTO();
+        memberDTO.setId(member.getId());
+        memberDTO.setName(member.getName());
+        memberDTO.setEmail(member.getEmail());
+        memberDTO.setPhone(member.getPhone());
+        memberDTO.setRegisteredAt(member.getRegisteredAt());
+
+        return memberDTO;
     }
 
     public List<TransactionDTO> getAllTransactions(String date, Long memberId, String sort, Integer page, Integer size) {
-        List<Transaction> transactions;
+        List<Transaction> transactions = transactionRepository.findAll();
+
         if (date != null) {
-            transactions = transactionRepository.findAllByBorrowedAtContaining(date);
-        } else if (memberId != null) {
-            transactions = transactionRepository.findAllByMemberId(memberId);
-        } else {
-            transactions = transactionRepository.findAll();
+            transactions = transactions.stream()
+                    .filter(transaction -> transaction.getBorrowedAt().contains(date))
+                    .collect(Collectors.toList());
+        }
+
+        if (memberId != null) {
+            transactions = transactions.stream()
+                    .filter(transaction -> transaction.getMember().getId() == memberId)
+                    .collect(Collectors.toList());
         }
 
         if (sort != null) {
-            switch (sort) {
-                case "borrowedAt":
-                    transactions.sort(Comparator.comparing(Transaction::getBorrowedAt));
-                    break;
-                case "actReturnedAt":
-                    transactions.sort(Comparator.comparing(Transaction::getActReturnedAt));
-                    break;
-                case "returnedAt":
-                    transactions.sort(Comparator.comparing(Transaction::getReturnedAt));
-                    break;
-                case "memberId":
-                    transactions.sort(Comparator.comparing(transaction -> transaction.getMember().getId()));
-                    break;
-                case "status":
-                    transactions.sort(Comparator.comparing(Transaction::getStatus));
-                    break;
-                case "operatorName":
-                    transactions.sort(Comparator.comparing(Transaction::getOperatorName));
-                    break;
-                case "totalFines":
-                    transactions.sort(Comparator.comparing(Transaction::getTotalFines));
-                    break;
-                default:
-                    break;
+            if (sort.equals("asc")) {
+                transactions.sort(Comparator.comparing(Transaction::getBorrowedAt));
+            } else if (sort.equals("desc")) {
+                transactions.sort(Comparator.comparing(Transaction::getBorrowedAt).reversed());
             }
         }
 
         if (page != null && size != null) {
             int start = (page - 1) * size;
-            int end = Math.min(start + size, transactions.size());
-            return transactions.subList(start, end).stream().map(this::convertToDTO).collect(Collectors.toList());
+            int end = start + size;
+
+            if (start > transactions.size()) {
+                return null;
+            }
+
+            if (end > transactions.size()) {
+                end = transactions.size();
+            }
+
+            transactions = transactions.subList(start, end);
         }
 
-        return transactions.stream().map(this::convertToDTO).collect(Collectors.toList());
+        return transactions.stream()
+                .map(transaction -> convertToDTO(transaction, null))
+                .collect(Collectors.toList());
     }
 
-    public TransactionDTO getTransactionById(long id) {
-        Transaction transaction = transactionRepository.findById(id).orElse(null);
-        if (transaction != null) {
-            return convertToDTO(transaction);
-        }
-        return null;
+    public TransactionDTO getTransactionById(Long transactionId) {
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
+
+        List<DetailTransactionDTO> detailTransactions = detailTransactionService.getDetailTransactionsByTransaction(transaction);
+
+        return convertToDTO(transaction, detailTransactions);
     }
 
-    public TransactionDTO addTransaction(TransactionDTO transactionDTO) {
-        // Retrieve the Member using the member ID from the DTO
-        Member member = memberRepository.findById(transactionDTO.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID"));
-
-        Transaction transaction = new Transaction();
-        transaction.setTransactionCode(transactionDTO.getTransactionCode());
-        transaction.setBorrowedAt(transactionDTO.getBorrowedAt());
-        transaction.setActReturnedAt(transactionDTO.getActReturnedAt());
-        transaction.setReturnedAt(transactionDTO.getReturnedAt());
-        transaction.setMember(member);
-        transaction.setStatus(transactionDTO.getStatus());
-        transaction.setOperatorName(transactionDTO.getOperatorName());
-        transaction.setTotalFines(transactionDTO.getTotalFines());
-
-        transactionRepository.save(transaction);
-        return convertToDTO(transaction);
-    }
-
-    public TransactionDTO updateTransaction(long id, TransactionDTO transactionDTO) {
-        Transaction transaction = transactionRepository.findById(id).orElse(null);
-        if (transaction != null) {
-            transaction.setTransactionCode(transactionDTO.getTransactionCode());
-            transaction.setBorrowedAt(transactionDTO.getBorrowedAt());
-            transaction.setActReturnedAt(transactionDTO.getActReturnedAt());
-            transaction.setReturnedAt(transactionDTO.getReturnedAt());
-            transaction.setStatus(transactionDTO.getStatus());
-            transaction.setOperatorName(transactionDTO.getOperatorName());
-            transaction.setTotalFines(transactionDTO.getTotalFines());
-
-            transactionRepository.save(transaction);
-            return convertToDTO(transaction);
-        }
-        return null;
-    }
+//    public TransactionDTO createTransaction(TransactionCreateDTO createDTO) {
+//        MemberDTO memberDTO = memberService.getMemberById(createDTO.getMemberId());
+//
+//        Transaction transaction = new Transaction();
+//        transaction.setTransactionCode(createDTO.generateTransactionCode());
+//        transaction.setMember();
+//    }
 }
+

@@ -11,6 +11,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static me.chiqors.springbooks.service.TransactionService.getMemberDTO;
+
 @Service
 public class MemberService {
     private final MemberRepository memberRepository;
@@ -21,14 +23,7 @@ public class MemberService {
     }
 
     public MemberDTO convertToDTO(Member member) {
-        MemberDTO memberDTO = new MemberDTO();
-        memberDTO.setId(member.getId());
-        memberDTO.setName(member.getName());
-        memberDTO.setEmail(member.getEmail());
-        memberDTO.setPhone(member.getPhone());
-        memberDTO.setRegisteredAt(member.getRegisteredAt());
-
-        return memberDTO;
+        return getMemberDTO(member);
     }
 
     public List<MemberDTO> getAllMembers(String name, String sort, int page, int size) {

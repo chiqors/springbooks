@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+import java.util.Date;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,4 +21,5 @@ public class TransactionDTO {
     private int totalBooks;
     private String operatorName;
     private int totalFines;
+    private List<DetailTransactionDTO> detailTransactions;
 }
