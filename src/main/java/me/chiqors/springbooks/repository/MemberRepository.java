@@ -9,4 +9,5 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     List<Member> findAllMembersByDeletedIsFalse();
     List<Member> findByNameContainingAndDeletedIsFalse(String name);
     Member findByIdAndDeletedIsFalse(long memberId);
+    Member findByMemberCodeAndDeletedIsFalse(String memberCode);
 }

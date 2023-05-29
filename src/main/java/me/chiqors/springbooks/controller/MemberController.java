@@ -38,17 +38,34 @@ public class MemberController {
         }
     }
 
-    @GetMapping("/member/{id}")
-    public ResponseEntity<?> getMemberById(@PathVariable("id") Long id) {
+    /**
+     * Retrieves a member by Code.
+     *
+     * @param memberCode    Code of the member to retrieve.
+     * @return ResponseEntity containing a MemberDTO and an HTTP status code.
+     */
+    @GetMapping("/member/{code}")
+    public ResponseEntity<?> getMemberByCode(@PathVariable("code") String memberCode) {
         try {
-            MemberDTO memberDTO = memberService.getMemberById(id);
-            return new ResponseEntity<>(memberDTO, HttpStatus.OK);
+            MemberDTO memberDTO = memberService.getMemberByCode(memberCode);
+            if (memberDTO != null) {
+                return new ResponseEntity<>(memberDTO, HttpStatus.OK);
+            } else {
+                String errorMessage = "Member with code: " + memberCode + " not found";
+                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+            }
         } catch (Exception e) {
             String errorMessage = "Failed to retrieve member";
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
+    /**
+     * Creates a new member.
+     *
+     * @param memberDTO    MemberDTO containing the member information to create.
+     * @return ResponseEntity containing a MemberDTO and an HTTP status code.
+     */
     @PostMapping("/members")
     public ResponseEntity<?> createMember(@RequestBody MemberDTO memberDTO) {
         try {
@@ -60,30 +77,48 @@ public class MemberController {
         }
     }
 
-    @PutMapping("/members/{id}")
-    public ResponseEntity<?> updateMember(@PathVariable("id") Long id, @RequestBody MemberDTO memberDTO) {
+    /**
+     * Updates a member by Code.
+     *
+     * @param memberCode    Code of the member to update.
+     * @param memberDTO     MemberDTO containing the updated member information.
+     * @return ResponseEntity containing a MemberDTO and an HTTP status code.
+     */
+    @PutMapping("/members/{code}")
+    public ResponseEntity<?> updateMember(@PathVariable("code") String memberCode, @RequestBody MemberDTO memberDTO) {
         try {
-            MemberDTO updatedMemberDTO = memberService.updateMember(id, memberDTO);
-            return new ResponseEntity<>(updatedMemberDTO, HttpStatus.OK);
+            MemberDTO updatedMemberDTO = memberService.updateMember(memberCode, memberDTO);
+            if (updatedMemberDTO != null) {
+                return new ResponseEntity<>(updatedMemberDTO, HttpStatus.OK);
+            } else {
+                String errorMessage = "Member with code: " + memberCode + " not found";
+                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+            }
         } catch (Exception e) {
             String errorMessage = "Failed to update member";
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @DeleteMapping("/members/{id}")
-    public ResponseEntity<?> deleteMember(@PathVariable("id") Long id) {
+    /**
+     * Deletes a member by Code.
+     *
+     * @param memberCode    Code of the member to delete.
+     * @return ResponseEntity containing a String message and an HTTP status code.
+     */
+    @DeleteMapping("/members/{code}")
+    public ResponseEntity<?> deleteMember(@PathVariable("code") String memberCode) {
         try {
-            boolean isDeleted = memberService.deleteMember(id);
+            boolean isDeleted = memberService.deleteMember(memberCode);
             if (isDeleted) {
-                String successMessage = "Member with id: " + id + " deleted";
+                String successMessage = "Member with code: " + memberCode + " deleted";
                 return new ResponseEntity<>(successMessage, HttpStatus.OK);
             } else {
-                String errorMessage = "Failed to delete member with id: " + id;
+                String errorMessage = "Failed to delete member with code: " + memberCode;
                 return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (Exception e) {
-            String errorMessage = "Failed to delete member with id: " + id;
+            String errorMessage = "Failed to delete member with code: " + memberCode;
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

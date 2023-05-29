@@ -31,6 +31,8 @@ public class TransactionService {
     private final MemberService memberService;
     private final BookService bookService;
 
+    // ------------------- CONSTRUCTOR -------------------
+
     @Autowired
     public TransactionService(TransactionRepository transactionRepository, DetailTransactionRepository detailTransactionRepository, MemberService memberService, BookService bookService) {
         this.transactionRepository = transactionRepository;
@@ -39,9 +41,11 @@ public class TransactionService {
         this.bookService = bookService;
     }
 
+    // ------------------- CONVERTER -------------------
+
     public TransactionDTO convertToDTO(Transaction transaction, List<DetailTransactionDTO> detailTransactions) {
         TransactionDTO dto = new TransactionDTO();
-        dto.setId(transaction.getId());
+        // dto.setId(transaction.getId());
         dto.setTransactionCode(transaction.getTransactionCode());
         dto.setBorrowedAt(transaction.getBorrowedAtString());
         dto.setActReturnedAt(transaction.getActReturnedAtString());
@@ -74,7 +78,7 @@ public class TransactionService {
         Member member = memberService.convertToEntity(memberDTO);
 
         Transaction transaction = new Transaction();
-        transaction.setId(dto.getId());
+        // transaction.setId(dto.getId());
         transaction.setTransactionCode(dto.getTransactionCode());
         transaction.setBorrowedAt(LocalDate.parse(dto.getBorrowedAt()));
         transaction.setActReturnedAt(LocalDate.parse(dto.getActReturnedAt()));
@@ -155,9 +159,8 @@ public class TransactionService {
         return transactionDTOs;
     }
 
-    public TransactionDTO getTransactionById(Long transactionId) {
-        Transaction transaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
+    public TransactionDTO getTransactionByCode(String transactionCode) {
+        Transaction transaction = transactionRepository.findByTransactionCode(transactionCode);
 
         List<DetailTransactionDTO> detailTransactions = transaction.getDetailTransactions().stream()
                 .map(this::convertDetailTransactionToDTO)
@@ -167,8 +170,8 @@ public class TransactionService {
     }
 
     public TransactionDTO addTransaction(TransactionDTO dto) {
-        // Generate transaction code. Format: T-<year><month><day>-S<hour><minute><second>-M<memberId>
-        String transactionCode = "T-" + LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")) + "-S" + LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + "-M" + dto.getMemberId();
+        // Generate transaction code. Format: T<day><month><year><hour><minute><second><memberId>
+        String transactionCode = "T" + LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")) + LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + dto.getMemberId();
         dto.setTransactionCode(transactionCode);
         dto.setBorrowedAt(LocalDate.now().toString());
         dto.setStatus("borrowed");
@@ -185,9 +188,8 @@ public class TransactionService {
         return dto;
     }
 
-    public TransactionDTO updateTransaction(Long id) {
-        Transaction transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found"));
+    public TransactionDTO updateTransaction(String transactionCode) {
+        Transaction transaction = transactionRepository.findByTransactionCode(transactionCode);
 
         transaction.setReturnedAt(LocalDate.now());
         transaction.setStatus("returned");
@@ -197,7 +199,7 @@ public class TransactionService {
         for (DetailTransaction detailTransaction : detailTransactions) {
             Book book = detailTransaction.getBook();
             book.setStock(book.getStock() + detailTransaction.getTotal());
-            bookService.updateBook(book.getId(), bookService.convertToDTO(book));
+            bookService.updateBook(book.getBookCode(), bookService.convertToDTO(book));
         }
 
         // get current date and check if it's past the actReturnedAt date

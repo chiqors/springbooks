@@ -30,6 +30,9 @@ public class Member {
     @Column(name = "deleted")
     private boolean deleted;
 
+    @Column(name = "member_code")
+    private String memberCode;
+
     // -------------- Out Relationships --------------
 
     // JSON Ignore to prevent infinite recursion

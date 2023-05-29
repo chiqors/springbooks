@@ -3,8 +3,8 @@ package me.chiqors.springbooks.controller;
 import java.util.List;
 
 import me.chiqors.springbooks.dto.BookDTO;
-
 import me.chiqors.springbooks.service.BookService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,22 +38,22 @@ public class BookController {
     }
 
     /**
-     * Retrieves a book by ID.
-     * @param id    ID of the book to retrieve.
+     * Retrieves a book by Code.
+     * @param bookCode    Code of the book to retrieve.
      * @return ResponseEntity containing a BookDTO and an HTTP status code.
      */
-    @GetMapping("/book/{id}")
-    public ResponseEntity<?> getBookById(@PathVariable("id") long id) {
+    @GetMapping("/book/{code}")
+    public ResponseEntity<?> getBookByCode(@PathVariable("code") String bookCode) {
         try {
-            BookDTO bookDTO = bookService.getBookById(id);
+            BookDTO bookDTO = bookService.getBookByCode(bookCode);
             if (bookDTO != null) {
                 return new ResponseEntity<>(bookDTO, HttpStatus.OK);
             } else {
-                String errorMessage = "Book with id: " + id + " not found";
+                String errorMessage = "Book with code: " + bookCode + " not found";
                 return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            String errorMessage = "Failed to retrieve book with id: " + id;
+            String errorMessage = "Failed to retrieve book with code: " + bookCode;
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -75,45 +75,45 @@ public class BookController {
     }
 
     /**
-     * Updates a book by ID.
-     * @param id    ID of the book to update.
+     * Updates a book by Code.
+     * @param bookCode   Code of the book to update.
      * @param bookDTO    BookDTO containing the book information to update.
      * @return ResponseEntity containing a BookDTO and an HTTP status code.
      */
-    @PutMapping("/books/{id}")
-    public ResponseEntity<?> updateBook(@PathVariable("id") long id, @RequestBody BookDTO bookDTO) {
+    @PutMapping("/books/{code}")
+    public ResponseEntity<?> updateBook(@PathVariable("code") String bookCode, @RequestBody BookDTO bookDTO) {
         try {
-            BookDTO updatedBookDTO = bookService.updateBook(id, bookDTO);
+            BookDTO updatedBookDTO = bookService.updateBook(bookCode, bookDTO);
             if (updatedBookDTO != null) {
                 return new ResponseEntity<>(updatedBookDTO, HttpStatus.OK);
             } else {
-                String errorMessage = "Book with id: " + id + " not found";
+                String errorMessage = "Book with code: " + bookCode + " not found";
                 return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            String errorMessage = "Failed to update book with id: " + id;
+            String errorMessage = "Failed to update book with code: " + bookCode;
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
-     * Deletes a book by ID.
-     * @param id    ID of the book to delete.
+     * Deletes a book by Code.
+     * @param bookCode    Code of the book to delete.
      * @return ResponseEntity containing a message and an HTTP status code.
      */
-    @DeleteMapping("/books/{id}")
-    public ResponseEntity<?> destroyBook(@PathVariable("id") long id) {
+    @DeleteMapping("/books/{code}")
+    public ResponseEntity<?> destroyBook(@PathVariable("code") String bookCode) {
         try {
-            boolean isDeleted = bookService.deleteBook(id);
+            boolean isDeleted = bookService.deleteBook(bookCode);
             if (isDeleted) {
-                String successMessage = "Book with id: " + id + " deleted successfully";
+                String successMessage = "Book with code: " + bookCode + " deleted successfully";
                 return new ResponseEntity<>(successMessage, HttpStatus.OK);
             } else {
-                String errorMessage = "Book with id: " + id + " not found";
+                String errorMessage = "Book with code: " + bookCode + " not found";
                 return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            String errorMessage = "Failed to delete book with id: " + id;
+            String errorMessage = "Failed to delete book with code: " + bookCode;
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

@@ -11,4 +11,6 @@ import me.chiqors.springbooks.model.Book;
 public interface BookRepository extends JpaRepository<Book, Long> {
     List<Book> findAllByDeletedIsFalse();
     List<Book> findByTitleContainingIgnoreCaseAndDeletedIsFalse(String title);
+
+    Book findByBookCodeAndDeletedIsFalse(String bookCode);
 }

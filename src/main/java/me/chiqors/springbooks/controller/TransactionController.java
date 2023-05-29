@@ -48,15 +48,26 @@ public class TransactionController {
     }
 
     /**
-     * Retrieves a transaction by ID.
+     * Retrieves a transaction by Code.
      *
-     * @param id    ID of the transaction to retrieve.
+     * @param transactionCode   ID of the transaction to retrieve.
      * @return ResponseEntity containing a TransactionDTO and an HTTP status code.
      */
-    @GetMapping("/transaction/{id}")
-    public ResponseEntity<TransactionDTO> getTransactionById(@PathVariable("id") Long id) {
-        TransactionDTO transactionDTO = transactionService.getTransactionById(id);
-        return ResponseEntity.ok(transactionDTO);
+    @GetMapping("/transaction/{code}")
+    public ResponseEntity<?> getTransactionByCode(@PathVariable("code") String transactionCode) {
+        try {
+            TransactionDTO transactionDTO = transactionService.getTransactionByCode(transactionCode);
+            if (transactionDTO != null) {
+                return new ResponseEntity<>(transactionDTO, HttpStatus.OK);
+            } else {
+                String errorMessage = "Transaction with code: " + transactionCode + " not found";
+                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorMessage = "Failed to retrieve transaction";
+            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -80,14 +91,19 @@ public class TransactionController {
     /**
      * Updates a transaction.
      *
-     * @param id    ID of the transaction to update.
+     * @param transactionCode    Code of the transaction to update.
      * @return ResponseEntity containing the updated TransactionDTO and an HTTP status code.
      */
-    @PutMapping("/transactions/{id}")
-    public ResponseEntity<?> updateTransaction(@PathVariable("id") Long id) {
+    @PutMapping("/transactions/{code}")
+    public ResponseEntity<?> updateTransaction(@PathVariable("code") String transactionCode) {
         try {
-            TransactionDTO updatedTransactionDTO = transactionService.updateTransaction(id);
-            return new ResponseEntity<>(updatedTransactionDTO, HttpStatus.OK);
+            TransactionDTO updatedTransactionDTO = transactionService.updateTransaction(transactionCode);
+            if (updatedTransactionDTO != null) {
+                return new ResponseEntity<>(updatedTransactionDTO, HttpStatus.OK);
+            } else {
+                String errorMessage = "Transaction with code: " + transactionCode + " not found";
+                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             String errorMessage = "Failed to update transaction";

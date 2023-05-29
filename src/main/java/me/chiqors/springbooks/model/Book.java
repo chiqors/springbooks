@@ -33,6 +33,9 @@ public class Book {
     @Column(name = "deleted")
     private boolean deleted;
 
+    @Column(name = "book_code")
+    private String bookCode;
+
     // -------------- Out Relationships --------------
 
     @OneToMany(mappedBy = "book")

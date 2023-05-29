@@ -10,11 +10,12 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookDTO {
-    private long id;
+    // private long id;
     private String title;
     private String author;
     private int stock;
     private String publishedAt;
     private String registeredAt;
     private boolean deleted;
+    private String bookCode;
 }

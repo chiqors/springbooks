@@ -11,7 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionDTO {
-    private long id;
+    // private long id;
     private String transactionCode;
     private String borrowedAt;
     private String actReturnedAt;

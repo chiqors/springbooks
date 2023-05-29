@@ -8,10 +8,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MemberDTO {
-    private long id;
+    // private long id;
     private String name;
     private String email;
     private String phone;
     private String registeredAt;
     private boolean deleted;
+    private String memberCode;
 }
