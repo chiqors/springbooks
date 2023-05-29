@@ -1,6 +1,8 @@
 package me.chiqors.springbooks.controller;
 
+import me.chiqors.springbooks.config.Constant;
 import me.chiqors.springbooks.dto.MemberDTO;
+import me.chiqors.springbooks.service.LogService;
 import me.chiqors.springbooks.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,10 +16,12 @@ import java.util.List;
 @RequestMapping("/api")
 public class MemberController {
     private final MemberService memberService;
+    private final LogService logService;
 
     @Autowired
-    public MemberController(MemberService memberService) {
+    public MemberController(MemberService memberService, LogService logService) {
         this.memberService = memberService;
+        this.logService = logService;
     }
 
 
@@ -70,9 +74,11 @@ public class MemberController {
     public ResponseEntity<?> createMember(@RequestBody MemberDTO memberDTO) {
         try {
             MemberDTO createdMemberDTO = memberService.addMember(memberDTO);
+            logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Created member with code: " + createdMemberDTO.getMemberCode());
             return new ResponseEntity<>(createdMemberDTO, HttpStatus.CREATED);
         } catch (Exception e) {
             String errorMessage = "Failed to create member";
+            logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -89,13 +95,16 @@ public class MemberController {
         try {
             MemberDTO updatedMemberDTO = memberService.updateMember(memberCode, memberDTO);
             if (updatedMemberDTO != null) {
+                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "PUT", HttpStatus.OK.value(), "Updated member with code: " + memberCode);
                 return new ResponseEntity<>(updatedMemberDTO, HttpStatus.OK);
             } else {
                 String errorMessage = "Member with code: " + memberCode + " not found";
+                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "PUT", HttpStatus.NOT_FOUND.value(), errorMessage);
                 return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
             String errorMessage = "Failed to update member";
+            logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -112,13 +121,16 @@ public class MemberController {
             boolean isDeleted = memberService.deleteMember(memberCode);
             if (isDeleted) {
                 String successMessage = "Member with code: " + memberCode + " deleted";
+                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), successMessage);
                 return new ResponseEntity<>(successMessage, HttpStatus.OK);
             } else {
                 String errorMessage = "Failed to delete member with code: " + memberCode;
+                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
                 return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (Exception e) {
             String errorMessage = "Failed to delete member with code: " + memberCode;
+            logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

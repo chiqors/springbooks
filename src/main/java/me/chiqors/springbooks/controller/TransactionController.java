@@ -1,6 +1,8 @@
 package me.chiqors.springbooks.controller;
 
+import me.chiqors.springbooks.config.Constant;
 import me.chiqors.springbooks.dto.TransactionDTO;
+import me.chiqors.springbooks.service.LogService;
 import me.chiqors.springbooks.service.TransactionService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +17,12 @@ import java.util.List;
 @RequestMapping("/api")
 public class TransactionController {
     private final TransactionService transactionService;
+    private final LogService logService;
 
     @Autowired
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, LogService logService) {
         this.transactionService = transactionService;
+        this.logService = logService;
     }
 
     /**
@@ -80,10 +84,11 @@ public class TransactionController {
     public ResponseEntity<?> createTransaction(@RequestBody TransactionDTO transactionDTO) {
         try {
             TransactionDTO newTransactionDTO = transactionService.addTransaction(transactionDTO);
+            logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Created transaction with code: " + newTransactionDTO.getTransactionCode());
             return new ResponseEntity<>(newTransactionDTO, HttpStatus.CREATED);
         } catch (Exception e) {
-            e.printStackTrace();
             String errorMessage = "Failed to create transaction";
+            logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -99,14 +104,16 @@ public class TransactionController {
         try {
             TransactionDTO updatedTransactionDTO = transactionService.updateTransaction(transactionCode);
             if (updatedTransactionDTO != null) {
+                logService.saveLog(Constant.API_PREFIX + "/transactions/" + transactionCode, Constant.HOST, "PUT", HttpStatus.OK.value(), "Updated transaction with code: " + transactionCode);
                 return new ResponseEntity<>(updatedTransactionDTO, HttpStatus.OK);
             } else {
                 String errorMessage = "Transaction with code: " + transactionCode + " not found";
+                logService.saveLog(Constant.API_PREFIX + "/transactions/" + transactionCode, Constant.HOST, "PUT", HttpStatus.NOT_FOUND.value(), errorMessage);
                 return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             String errorMessage = "Failed to update transaction";
+            logService.saveLog(Constant.API_PREFIX + "/transactions/" + transactionCode, Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

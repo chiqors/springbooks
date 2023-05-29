@@ -1,131 +1,135 @@
 package me.chiqors.springbooks.service;
 
-import static me.chiqors.springbooks.config.Constant.LOGS_DIRECTORY;
-import static me.chiqors.springbooks.config.Constant.LOG_FILE_EXTENSION;
-import static me.chiqors.springbooks.config.Constant.LOG_FILE_PREFIX;
-import static me.chiqors.springbooks.config.Constant.MAX_LOG_FILE_SIZE;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import me.chiqors.springbooks.config.Constant;
+import me.chiqors.springbooks.dto.LogDTO;
+import me.chiqors.springbooks.model.Log;
+import me.chiqors.springbooks.repository.LogRepository;
+import org.apache.commons.io.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import java.util.stream.Collectors;
 
 @Service
 public class LogService {
-    private final Gson gson;
+    private final LogRepository logRepository;
+    private final ObjectMapper objectMapper;
 
-    public LogService() {
-        createLogsDirectory();
-        gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    // -----------------------------------------------------
+    // ------------------ CONSTRUCTOR ----------------------
+    // -----------------------------------------------------
+
+    @Autowired
+    public LogService(LogRepository logRepository, ObjectMapper objectMapper) {
+        this.logRepository = logRepository;
+        this.objectMapper = objectMapper;
     }
 
-    private void createLogsDirectory() {
-        File logsDirectory = new File(LOGS_DIRECTORY);
-        if (!logsDirectory.exists()) {
-            boolean created = logsDirectory.mkdirs();
-            if (!created) {
-                // Handle the case where logs directory creation fails
-                System.err.println("Failed to create logs directory: " + logsDirectory.getAbsolutePath());
-            }
-        }
+    // -----------------------------------------------------
+    // ------------------ CONVERTER ------------------------
+    // -----------------------------------------------------
+
+    public LogDTO convertToDTO(Log log) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return new LogDTO(formatter.format(log.getTimestamp()), log.getUrlPath(), log.getHostName(),
+                log.getHttpMethod(), log.getHttpCode(), log.getMessage());
     }
+
+    public Log convertToEntity(LogDTO logDTO) {
+        return new Log(logDTO.getUrlPath(), logDTO.getHostName(), logDTO.getHttpMethod(),
+                logDTO.getHttpCode(), logDTO.getMessage());
+    }
+
+    // -----------------------------------------------------
+    // ------------------ LOG BACKUP -----------------------
+    // -----------------------------------------------------
 
     public void saveLog(String urlPath, String hostName, String httpMethod, int httpCode, String message) {
-        JsonObject logEntry = generateLogEntry(urlPath, hostName, httpMethod, httpCode, message);
-        String logFileName = getLogFileName();
-        try {
-            FileWriter fileWriter = new FileWriter(logFileName, true);
-            fileWriter.write(gson.toJson(logEntry));
-            fileWriter.write(System.lineSeparator()); // Add a line separator between log entries
-            fileWriter.close();
-        } catch (IOException e) {
-            // Handle exception appropriately
+        Log log = new Log(urlPath, hostName, httpMethod, httpCode, message);
+        logRepository.save(log);
+    }
+
+    // -----------------------------------------------------
+    // ------------------ SCHEDULED TASKS ------------------
+    // -----------------------------------------------------
+
+    @Scheduled(cron = "0 0 0 */7 * *") // Every 7 days at 00:00:00
+    public void backupLogsFromDBtoLogsFolder() throws IOException {
+        createLogBackupFolderIfNotExists();
+
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = LocalDate.now().minusDays(i);
+            String logFileName = Constant.LOG_FILE_PREFIX + dateFormatter.format(date) + Constant.LOG_FILE_EXTENSION;
+
+            List<Log> logs = logRepository.getLogByTimestampBetween(date.atStartOfDay(), date.plusDays(1).atStartOfDay());
+            String logsJson = objectMapper.writeValueAsString(logs);
+
+            Path logFilePath = Paths.get(Constant.LOGS_DIRECTORY, logFileName);
+            Files.write(logFilePath, logsJson.getBytes());
+
+            logRepository.deleteAll(logs);
+        }
+
+        String zipFileName = Constant.LOG_FILE_PREFIX + dateFormatter.format(LocalDate.now()) + ".zip";
+        zipLogFiles(zipFileName);
+
+        deleteLogFilesExceptArchive(zipFileName);
+    }
+
+    private void createLogBackupFolderIfNotExists() throws IOException {
+        File logDirectory = new File(Constant.LOGS_DIRECTORY);
+        if (!logDirectory.exists()) {
+            FileUtils.forceMkdir(logDirectory);
         }
     }
 
-    private JsonObject generateLogEntry(String urlPath, String hostName, String httpMethod, int httpCode, String message) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String timestamp = dateFormat.format(new Date());
+    private void zipLogFiles(String zipFileName) throws IOException {
+        List<File> logFiles = getLogFiles();
 
-        JsonObject logEntry = new JsonObject();
-        logEntry.addProperty("timestamp", timestamp);
-        logEntry.addProperty("urlPath", urlPath);
-        logEntry.addProperty("hostName", hostName);
-        logEntry.addProperty("httpMethod", httpMethod);
-        logEntry.addProperty("httpCode", httpCode);
-        logEntry.addProperty("message", message);
-
-        return logEntry;
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(
+                Files.newOutputStream(Paths.get(Constant.LOGS_DIRECTORY, zipFileName)))) {
+            for (File logFile : logFiles) {
+                ZipEntry zipEntry = new ZipEntry(logFile.getName());
+                zipOutputStream.putNextEntry(zipEntry);
+                Files.copy(logFile.toPath(), zipOutputStream);
+                zipOutputStream.closeEntry();
+            }
+        }
     }
 
-    private String getLogFileName() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        String currentDate = dateFormat.format(new Date());
-        return LOGS_DIRECTORY + File.separator + LOG_FILE_PREFIX + currentDate + LOG_FILE_EXTENSION;
-    }
-
-    @Scheduled(cron = "0 0 0 * * *") // Runs daily at midnight (change the cron expression as per your requirement)
-    public void backupLogs() {
-        File logDirectory = new File(LOGS_DIRECTORY);
-        if (!logDirectory.exists() || !logDirectory.isDirectory()) {
-            return; // Log directory doesn't exist or is not a directory
-        }
-
-        File[] logFiles = logDirectory.listFiles();
-        if (logFiles == null || logFiles.length == 0) {
-            return; // No log files found
-        }
-
+    private void deleteLogFilesExceptArchive(String archiveFileName) {
+        List<File> logFiles = getLogFiles();
         for (File logFile : logFiles) {
-            if (logFile.length() > MAX_LOG_FILE_SIZE || isLogFileOlderThanWeek(logFile)) {
-                backupLogFile(logFile);
+            if (!logFile.getName().equals(archiveFileName)) {
+                logFile.delete();
             }
         }
     }
 
-    private boolean isLogFileOlderThanWeek(File logFile) {
-        long currentTimeMillis = System.currentTimeMillis();
-        long fileLastModified = logFile.lastModified();
-        long weekInMillis = 7 * 24 * 60 * 60 * 1000; // 7 days
-        return (currentTimeMillis - fileLastModified) > weekInMillis;
-    }
-
-    private void backupLogFile(File logFile) {
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            String currentDate = dateFormat.format(new Date());
-            String zipFileName = LOGS_DIRECTORY + File.separator + "backup" + File.separator + "logs_" + currentDate + ".zip";
-
-            File backupDirectory = new File(LOGS_DIRECTORY + File.separator + "backup");
-            if (!backupDirectory.exists()) {
-                backupDirectory.mkdirs();
-            }
-
-            ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFileName));
-            ZipEntry zipEntry = new ZipEntry(logFile.getName());
-            zipOutputStream.putNextEntry(zipEntry);
-
-            // Read the log file and write its contents to the zip file
-            // Here you can use FileInputStream and ZipOutputStream to perform the file copy
-
-            zipOutputStream.closeEntry();
-            zipOutputStream.close();
-
-            // Delete the original log file
-            logFile.delete();
-        } catch (IOException e) {
-            // Handle exception appropriately
+    private List<File> getLogFiles() {
+        File logDirectory = new File(Constant.LOGS_DIRECTORY);
+        File[] files = logDirectory.listFiles((dir, name) -> name.endsWith(Constant.LOG_FILE_EXTENSION));
+        if (files != null) {
+            return new ArrayList<>(Arrays.asList(files));
         }
+        return Collections.emptyList();
     }
 }
