@@ -2,8 +2,10 @@ package me.chiqors.springbooks.controller;
 
 import java.util.List;
 
+import me.chiqors.springbooks.config.Constant;
 import me.chiqors.springbooks.dto.BookDTO;
 import me.chiqors.springbooks.service.BookService;
+import me.chiqors.springbooks.service.LogService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,13 +14,15 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping("/api")
+@RequestMapping(Constant.API_PREFIX)
 public class BookController {
     private final BookService bookService;
+    private final LogService logService;
 
     @Autowired
-    public BookController(BookService bookService) {
+    public BookController(BookService bookService, LogService logService) {
         this.bookService = bookService;
+        this.logService = logService;
     }
 
     /**
@@ -67,9 +71,11 @@ public class BookController {
     public ResponseEntity<?> createBook(@RequestBody BookDTO bookDTO) {
         try {
             BookDTO createdBookDTO = bookService.addBook(bookDTO);
+            logService.saveLog(Constant.API_PREFIX + "/books", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Book created");
             return new ResponseEntity<>(createdBookDTO, HttpStatus.CREATED);
         } catch (Exception e) {
             String errorMessage = "Failed to create book";
+            logService.saveLog(Constant.API_PREFIX + "/books", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create book");
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -85,13 +91,16 @@ public class BookController {
         try {
             BookDTO updatedBookDTO = bookService.updateBook(bookCode, bookDTO);
             if (updatedBookDTO != null) {
+                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "PUT", HttpStatus.OK.value(), "Book updated");
                 return new ResponseEntity<>(updatedBookDTO, HttpStatus.OK);
             } else {
                 String errorMessage = "Book with code: " + bookCode + " not found";
+                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "PUT", HttpStatus.NOT_FOUND.value(), "Book not found");
                 return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
             String errorMessage = "Failed to update book with code: " + bookCode;
+            logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update book");
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -107,13 +116,16 @@ public class BookController {
             boolean isDeleted = bookService.deleteBook(bookCode);
             if (isDeleted) {
                 String successMessage = "Book with code: " + bookCode + " deleted successfully";
+                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), "Book deleted");
                 return new ResponseEntity<>(successMessage, HttpStatus.OK);
             } else {
                 String errorMessage = "Book with code: " + bookCode + " not found";
+                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.NOT_FOUND.value(), "Book not found");
                 return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
             }
         } catch (Exception e) {
             String errorMessage = "Failed to delete book with code: " + bookCode;
+            logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book");
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
