@@ -5,11 +5,11 @@ import me.chiqors.springbooks.model.Book;
 import me.chiqors.springbooks.repository.BookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,6 +20,7 @@ public class BookService {
     @Autowired
     public BookService(BookRepository bookRepository) {
         this.bookRepository = bookRepository;
+        System.out.println("BookController - BookService injected");
     }
 
     public BookDTO convertToDTO(Book book) {
@@ -28,8 +29,8 @@ public class BookService {
         bookDTO.setTitle(book.getTitle());
         bookDTO.setAuthor(book.getAuthor());
         bookDTO.setStock(book.getStock());
-        bookDTO.setPublishedAt(book.getPublishedAt());
-        bookDTO.setRegisteredAt(book.getRegisteredAt());
+        bookDTO.setPublishedAt(book.getPublishedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        bookDTO.setRegisteredAt(book.getRegisteredAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         bookDTO.setDeleted(book.isDeleted());
         return bookDTO;
     }
@@ -40,32 +41,20 @@ public class BookService {
         book.setTitle(bookDTO.getTitle());
         book.setAuthor(bookDTO.getAuthor());
         book.setStock(bookDTO.getStock());
-        book.setPublishedAt(bookDTO.getPublishedAt());
-        book.setRegisteredAt(bookDTO.getRegisteredAt());
+        book.setPublishedAt(LocalDate.parse(bookDTO.getPublishedAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        book.setRegisteredAt(LocalDate.parse(bookDTO.getRegisteredAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         book.setDeleted(bookDTO.isDeleted());
         return book;
     }
 
     // ------------------- CRUD -------------------
 
-    public List<BookDTO> getAllBooks(String title, String sort, int page, int size) {
+    public List<BookDTO> getAllBooks(String title) {
         List<Book> books;
         if (title != null) {
-            books = bookRepository.findByTitleContainingAndDeletedIsFalse(title);
+            books = bookRepository.findByTitleContainingIgnoreCaseAndDeletedIsFalse(title);
         } else {
-            books = bookRepository.findAllBooksByDeletedIsFalse();
-        }
-
-        if (sort != null) {
-            if (sort.equals("asc")) {
-                books.sort(Comparator.comparing(Book::getTitle));
-            } else if (sort.equals("desc")) {
-                books.sort(Comparator.comparing(Book::getTitle).reversed());
-            }
-        }
-
-        if (page >= 0 && size > 0) {
-            books = bookRepository.findAll(PageRequest.of(page, size)).toList();
+            books = bookRepository.findAllByDeletedIsFalse();
         }
 
         return books.stream().map(this::convertToDTO).collect(Collectors.toList());
@@ -84,8 +73,8 @@ public class BookService {
         book.setTitle(bookDTO.getTitle());
         book.setAuthor(bookDTO.getAuthor());
         book.setStock(bookDTO.getStock());
-        book.setPublishedAt(bookDTO.getPublishedAt());
-        book.setRegisteredAt(bookDTO.getRegisteredAt());
+        book.setPublishedAt(LocalDate.parse(bookDTO.getPublishedAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        book.setRegisteredAt(LocalDate.parse(bookDTO.getRegisteredAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         book.setDeleted(false);
 
         book = bookRepository.save(book);
@@ -100,8 +89,8 @@ public class BookService {
             book.setTitle(bookDTO.getTitle());
             book.setAuthor(bookDTO.getAuthor());
             book.setStock(bookDTO.getStock());
-            book.setPublishedAt(bookDTO.getPublishedAt());
-            book.setRegisteredAt(bookDTO.getRegisteredAt());
+            book.setPublishedAt(LocalDate.parse(bookDTO.getPublishedAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            book.setRegisteredAt(LocalDate.parse(bookDTO.getRegisteredAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             book = bookRepository.save(book);
             return convertToDTO(book);
         }

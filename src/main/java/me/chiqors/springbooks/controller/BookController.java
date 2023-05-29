@@ -24,18 +24,12 @@ public class BookController {
     /**
      * Retrieves all books based on optional filtering, sorting, and pagination parameters.
      * @param title    Optional parameter to filter books by title.
-     * @param sort    Optional parameter to specify the sorting order (e.g., "asc" or "desc").
-     * @param page    Optional parameter to specify the page number for pagination.
-     * @param size    Optional parameter to specify the page size for pagination.
      * @return ResponseEntity containing a list of BookDTOs and an HTTP status code.
      */
     @GetMapping("/books")
-    public ResponseEntity<?> getAllBooks(@RequestParam(required = false) String title,
-                                         @RequestParam(required = false) String sort,
-                                         @RequestParam(required = false) Integer page,
-                                         @RequestParam(required = false) Integer size) {
+    public ResponseEntity<?> getAllBooks(@RequestParam(required = false) String title) {
         try {
-            List<BookDTO> bookDTOs = bookService.getAllBooks(title, sort, page, size);
+            List<BookDTO> bookDTOs = bookService.getAllBooks(title);
             return new ResponseEntity<>(bookDTOs, HttpStatus.OK);
         } catch (Exception e) {
             String errorMessage = "Failed to retrieve books";

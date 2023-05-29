@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class TransactionService {
     private final TransactionRepository transactionRepository;
-    private final DetailTransactionRepository detailTransactionRepository;
+    private final DetailTransactionRepository detailTransactionRepository; // not the service, since it will be having infinite loop
     private final MemberService memberService;
     private final BookService bookService;
 
@@ -167,8 +167,8 @@ public class TransactionService {
     }
 
     public TransactionDTO addTransaction(TransactionDTO dto) {
-        // Generate transaction code. Format: T-<year><month><day>S<hour><minute><second>M<memberId>
-        String transactionCode = "T-" + LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")) + "S" + LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + "M" + dto.getMemberId();
+        // Generate transaction code. Format: T-<year><month><day>-S<hour><minute><second>-M<memberId>
+        String transactionCode = "T-" + LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")) + "-S" + LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + "-M" + dto.getMemberId();
         dto.setTransactionCode(transactionCode);
         dto.setBorrowedAt(LocalDate.now().toString());
         dto.setStatus("borrowed");

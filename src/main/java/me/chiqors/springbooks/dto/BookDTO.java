@@ -14,7 +14,7 @@ public class BookDTO {
     private String title;
     private String author;
     private int stock;
-    private LocalDate publishedAt;
-    private LocalDate registeredAt;
+    private String publishedAt;
+    private String registeredAt;
     private boolean deleted;
 }

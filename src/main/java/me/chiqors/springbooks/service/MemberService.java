@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,7 +28,7 @@ public class MemberService {
         memberDTO.setName(member.getName());
         memberDTO.setEmail(member.getEmail());
         memberDTO.setPhone(member.getPhone());
-        memberDTO.setRegisteredAt(member.getRegisteredAt());
+        memberDTO.setRegisteredAt(member.getRegisteredAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         memberDTO.setDeleted(member.isDeleted());
         return memberDTO;
     }
@@ -37,14 +39,14 @@ public class MemberService {
         member.setName(memberDTO.getName());
         member.setEmail(memberDTO.getEmail());
         member.setPhone(memberDTO.getPhone());
-        member.setRegisteredAt(memberDTO.getRegisteredAt());
+        member.setRegisteredAt(LocalDate.parse(memberDTO.getRegisteredAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         member.setDeleted(memberDTO.isDeleted());
         return member;
     }
 
     // ------------------- CRUD -------------------
 
-    public List<MemberDTO> getAllMembers(String name, String sort, int page, int size) {
+    public List<MemberDTO> getAllMembers(String name) {
         List<Member> members;
 
         if (name != null) {
@@ -53,19 +55,10 @@ public class MemberService {
             members = memberRepository.findAllMembersByDeletedIsFalse();
         }
 
-        if (sort != null) {
-            if (sort.equals("asc")) {
-                members.sort(Comparator.comparing(Member::getName));
-            } else if (sort.equals("desc")) {
-                members.sort(Comparator.comparing(Member::getName).reversed());
-            }
-        }
-
-        if (page >= 0 && size > 0) {
-            members = memberRepository.findAll(PageRequest.of(page, size)).toList();
-        }
-
-        return members.stream().map(this::convertToDTO).collect(Collectors.toList());
+        return members.stream()
+                .sorted(Comparator.comparing(Member::getName))
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     public MemberDTO getMemberById(long id) {
@@ -82,7 +75,7 @@ public class MemberService {
         member.setName(memberDTO.getName());
         member.setEmail(memberDTO.getEmail());
         member.setPhone(memberDTO.getPhone());
-        member.setRegisteredAt(memberDTO.getRegisteredAt());
+        member.setRegisteredAt(LocalDate.now());
         member.setDeleted(false);
 
         memberRepository.save(member);
