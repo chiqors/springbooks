@@ -15,5 +15,5 @@ public class MemberDTO {
     private String email;
     private String phone;
     private LocalDate registeredAt;
-    private String deleted;
+    private boolean deleted;
 }

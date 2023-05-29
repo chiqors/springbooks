@@ -1,7 +1,6 @@
 package me.chiqors.springbooks.controller;
 
 import me.chiqors.springbooks.dto.TransactionDTO;
-import me.chiqors.springbooks.service.DetailTransactionService;
 import me.chiqors.springbooks.service.TransactionService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +15,10 @@ import java.util.List;
 @RequestMapping("/api")
 public class TransactionController {
     private final TransactionService transactionService;
-    private final DetailTransactionService detailTransactionService;
 
     @Autowired
-    public TransactionController(TransactionService transactionService, DetailTransactionService detailTransactionService) {
+    public TransactionController(TransactionService transactionService) {
         this.transactionService = transactionService;
-        this.detailTransactionService = detailTransactionService;
     }
 
     /**
@@ -44,6 +41,7 @@ public class TransactionController {
             List<TransactionDTO> transactionDTOs = transactionService.getAllTransactions(date, memberId, sort, page, size);
             return new ResponseEntity<>(transactionDTOs, HttpStatus.OK);
         } catch (Exception e) {
+            e.printStackTrace();
             String errorMessage = "Failed to retrieve transactions";
             return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -67,14 +65,33 @@ public class TransactionController {
      * @param transactionDTO    TransactionDTO containing the transaction data.
      * @return ResponseEntity containing the created TransactionDTO and an HTTP status code.
      */
-//    @PostMapping("/transactions")
-//    public ResponseEntity<?> createTransaction(@RequestBody TransactionDTO transactionDTO) {
-//        try {
-//            TransactionDTO newTransactionDTO = transactionService.createTransaction(transactionDTO);
-//            return new ResponseEntity<>(newTransactionDTO, HttpStatus.CREATED);
-//        } catch (Exception e) {
-//            String errorMessage = "Failed to create transaction";
-//            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
+    @PostMapping("/transactions")
+    public ResponseEntity<?> createTransaction(@RequestBody TransactionDTO transactionDTO) {
+        try {
+            TransactionDTO newTransactionDTO = transactionService.addTransaction(transactionDTO);
+            return new ResponseEntity<>(newTransactionDTO, HttpStatus.CREATED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorMessage = "Failed to create transaction";
+            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Updates a transaction.
+     *
+     * @param id    ID of the transaction to update.
+     * @return ResponseEntity containing the updated TransactionDTO and an HTTP status code.
+     */
+    @PutMapping("/transactions/{id}")
+    public ResponseEntity<?> updateTransaction(@PathVariable("id") Long id) {
+        try {
+            TransactionDTO updatedTransactionDTO = transactionService.updateTransaction(id);
+            return new ResponseEntity<>(updatedTransactionDTO, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorMessage = "Failed to update transaction";
+            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

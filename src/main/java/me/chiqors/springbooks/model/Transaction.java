@@ -1,13 +1,17 @@
 package me.chiqors.springbooks.model;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Getter @Setter
 @Entity
+@NoArgsConstructor
 @Table(name = "transactions")
 public class Transaction {
     @Id
@@ -18,13 +22,13 @@ public class Transaction {
     private String transactionCode;
 
     @Column(name = "borrowed_at")
-    private String borrowedAt;
+    private LocalDate borrowedAt;
 
     @Column(name = "act_returned_at")
-    private String actReturnedAt;
+    private LocalDate actReturnedAt;
 
     @Column(name = "returned_at")
-    private String returnedAt;
+    private LocalDate returnedAt;
 
     @ManyToOne
     @JoinColumn(name = "member_id")
@@ -48,6 +52,25 @@ public class Transaction {
     private List<DetailTransaction> detailTransactions;
 
     // -------------- Methods --------------
+
+    public Transaction(long transactionId) {
+        this.id = transactionId;
+    }
+
+    public String getBorrowedAtString() {
+        return borrowedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+
+    public String getActReturnedAtString() {
+        return actReturnedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+
+    public String getReturnedAtString() {
+        if (returnedAt == null) {
+            return "";
+        }
+        return returnedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
 
     @Override
     public String toString() {

@@ -34,6 +34,20 @@ public class BookService {
         return bookDTO;
     }
 
+    public Book convertToEntity(BookDTO bookDTO) {
+        Book book = new Book();
+        book.setId(bookDTO.getId());
+        book.setTitle(bookDTO.getTitle());
+        book.setAuthor(bookDTO.getAuthor());
+        book.setStock(bookDTO.getStock());
+        book.setPublishedAt(bookDTO.getPublishedAt());
+        book.setRegisteredAt(bookDTO.getRegisteredAt());
+        book.setDeleted(bookDTO.isDeleted());
+        return book;
+    }
+
+    // ------------------- CRUD -------------------
+
     public List<BookDTO> getAllBooks(String title, String sort, int page, int size) {
         List<Book> books;
         if (title != null) {
