@@ -1,8 +1,6 @@
 package me.chiqors.springbooks.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -20,15 +18,11 @@ public class DetailTransactionDTO {
 
     private Integer total;
 
-    @JsonProperty("book_code")
-    private String bookCode;
-
     // include book dto
     private BookDTO book;
 
-    public DetailTransactionDTO(Integer total, String bookCode, BookDTO bookDTO) {
+    public DetailTransactionDTO(Integer total, BookDTO bookDTO) {
         this.total = total;
-        this.bookCode = bookCode;
         this.book = bookDTO;
     }
 }

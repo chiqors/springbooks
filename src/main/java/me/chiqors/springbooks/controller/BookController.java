@@ -100,7 +100,7 @@ public class BookController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
-            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to create book", null, null);
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to create book", null, errors);
             logService.saveLog(Constant.API_PREFIX+ "/books", Constant.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Failed to create book");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
@@ -126,7 +126,7 @@ public class BookController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
-            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to update book", null, null);
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to update book", null, errors);
             logService.saveLog(Constant.API_PREFIX+ "/books/" + bookDTO.getBookCode(), Constant.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Failed to update book");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
@@ -139,15 +139,22 @@ public class BookController {
      */
     @DeleteMapping("/books/{code}")
     public ResponseEntity<JSONResponse> destroyBook(@PathVariable("code") String bookCode) {
-        boolean isDeleted = bookService.deleteBook(bookCode);
-        if (isDeleted) {
-            JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Book deleted", null, null);
-            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), "Book deleted");
-            return ResponseEntity.ok(jsonResponse);
+        List<String> errors = formValidation.destroyBookValidation(bookCode);
+        if (errors.isEmpty()) {
+            boolean isDeleted = bookService.deleteBook(bookCode);
+            if (isDeleted) {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Book deleted", null, null);
+                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), "Book deleted");
+                return ResponseEntity.ok(jsonResponse);
+            } else {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book", null, null);
+                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
+            }
         } else {
-            JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book", null, null);
-            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to delete book", null, errors);
+            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.BAD_REQUEST.value(), "Failed to delete book");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
 }

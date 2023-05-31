@@ -9,6 +9,7 @@ import me.chiqors.springbooks.service.BookService;
 import me.chiqors.springbooks.dto.BookDTO;
 import me.chiqors.springbooks.service.MemberService;
 import me.chiqors.springbooks.service.TransactionService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -16,15 +17,12 @@ import java.util.List;
 
 @Component
 public class FormValidation {
-    private static BookService bookService;
-    private static MemberService memberService;
-    private static TransactionService transactionService;
-
-    public FormValidation(BookService bookService, MemberService memberService, TransactionService transactionService) {
-        FormValidation.bookService = bookService;
-        FormValidation.memberService = memberService;
-        FormValidation.transactionService = transactionService;
-    }
+    @Autowired
+    private BookService bookService;
+    @Autowired
+    private MemberService memberService;
+    @Autowired
+    private TransactionService transactionService;
 
     public List<String> createBookValidation(BookDTO bookDTO) {
         List<String> errors = new ArrayList<>();
@@ -88,6 +86,21 @@ public class FormValidation {
         return errors;
     }
 
+    public List<String> destroyBookValidation(String bookCode) {
+        List<String> errors = new ArrayList<>();
+
+        if (bookCode == null) {
+            errors.add("Book code is required");
+        } else {
+            boolean isValidBookCode = bookService.isValidBookCode(bookCode);
+            if (!isValidBookCode) {
+                errors.add("Invalid book code");
+            }
+        }
+
+        return errors;
+    }
+
     public List<String> createMemberValidation(MemberDTO memberDTO) {
         List<String> errors = new ArrayList<>();
 
@@ -138,6 +151,21 @@ public class FormValidation {
             errors.add("Member code is required for update");
         } else {
             boolean isValidMemberCode = memberService.isValidMemberCode(memberDTO.getMemberCode());
+            if (!isValidMemberCode) {
+                errors.add("Invalid member code");
+            }
+        }
+
+        return errors;
+    }
+
+    public List<String> destroyMemberValidation(String memberCode) {
+        List<String> errors = new ArrayList<>();
+
+        if (memberCode == null) {
+            errors.add("Member code is required");
+        } else {
+            boolean isValidMemberCode = memberService.isValidMemberCode(memberCode);
             if (!isValidMemberCode) {
                 errors.add("Invalid member code");
             }

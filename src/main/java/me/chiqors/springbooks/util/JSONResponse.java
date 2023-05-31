@@ -1,6 +1,5 @@
 package me.chiqors.springbooks.util;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,6 +16,5 @@ public class JSONResponse {
 
     private Object data;
 
-    @JsonProperty("errors")
     private List<String> errors;
 }

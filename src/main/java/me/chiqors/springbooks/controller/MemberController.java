@@ -139,21 +139,23 @@ public class MemberController {
      */
     @DeleteMapping("/members/{code}")
     public ResponseEntity<?> deleteMember(@PathVariable("code") String memberCode) {
-        try {
-            boolean isDeleted = memberService.deleteMember(memberCode);
-            if (isDeleted) {
-                String successMessage = "Member with code: " + memberCode + " deleted";
-                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), successMessage);
-                return new ResponseEntity<>(successMessage, HttpStatus.OK);
-            } else {
-                String errorMessage = "Failed to delete member with code: " + memberCode;
-                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
-                return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        List<String> errors = formValidation.destroyMemberValidation(memberCode);
+        if (errors.isEmpty()) {
+            try {
+                memberService.deleteMember(memberCode);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Member deleted", null, null);
+                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), "Deleted member with code: " + memberCode);
+                return ResponseEntity.ok(jsonResponse);
+            } catch (Exception e) {
+                e.printStackTrace();
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete member", null, null);
+                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete member");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
-        } catch (Exception e) {
-            String errorMessage = "Failed to delete member with code: " + memberCode;
-            logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        } else {
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to delete member", null, errors);
+            logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "DELETE", HttpStatus.BAD_REQUEST.value(), "Failed to delete member");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
 }

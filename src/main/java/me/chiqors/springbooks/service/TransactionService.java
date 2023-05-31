@@ -81,7 +81,6 @@ public class TransactionService {
 
         return new DetailTransactionDTO(
                 detailTransaction.getTotal(),
-                detailTransaction.getBook().getBookCode(),
                 bookDTO
         );
     }
