@@ -8,6 +8,9 @@ import org.springframework.data.annotation.Id;
 import javax.persistence.*;
 import java.time.LocalDate;
 
+/**
+ * Represents a log entity.
+ */
 @Getter @Setter
 @Entity
 @NoArgsConstructor

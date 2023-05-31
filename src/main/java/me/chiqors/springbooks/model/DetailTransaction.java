@@ -1,17 +1,22 @@
 package me.chiqors.springbooks.model;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
 
+/**
+ * Represents a detail transaction entity.
+ */
 @Getter @Setter
 @Entity
+@NoArgsConstructor
 @Table(name = "detail_transactions")
 public class DetailTransaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "transaction_id")
@@ -22,17 +27,13 @@ public class DetailTransaction {
     private Book book;
 
     @Column(name = "total")
-    private int total;
+    private Integer total;
 
     // -------------- Methods --------------
 
-    @Override
-    public String toString() {
-        String content = "DetailTransaction [";
-        content += "id=" + id;
-        content += ", transaction=" + transaction;
-        content += ", book=" + book;
-        content += ", total=" + total;
-        return content;
+    public DetailTransaction(Transaction transaction, Book book, Integer total) {
+        this.transaction = transaction;
+        this.book = book;
+        this.total = total;
     }
 }

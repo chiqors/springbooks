@@ -4,11 +4,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.*;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Column;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+
+import java.util.Date;
 import java.util.List;
 
+/**
+ * Represents a transaction entity.
+ */
 @Getter @Setter
 @Entity
 @NoArgsConstructor
@@ -16,19 +27,19 @@ import java.util.List;
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(name = "transaction_code")
     private String transactionCode;
 
     @Column(name = "borrowed_at")
-    private LocalDate borrowedAt;
+    private Date borrowedAt;
 
-    @Column(name = "act_returned_at")
-    private LocalDate actReturnedAt;
+    @Column(name = "est_returned_at")
+    private Date estReturnedAt;
 
     @Column(name = "returned_at")
-    private LocalDate returnedAt;
+    private Date returnedAt;
 
     @ManyToOne
     @JoinColumn(name = "member_id")
@@ -38,13 +49,16 @@ public class Transaction {
     private String status;
 
     @Column(name = "total_books")
-    private int totalBooks;
+    private Integer totalBooks;
 
     @Column(name = "operator_name")
     private String operatorName;
 
     @Column(name = "total_fines")
-    private int totalFines;
+    private Integer totalFines;
+
+    @Column(name = "updated_at")
+    private Date updatedAt;
 
     // -------------- Out Relationships --------------
 
@@ -53,45 +67,33 @@ public class Transaction {
 
     // -------------- Methods --------------
 
-    public Transaction(long transactionId) {
-        this.id = transactionId;
-    }
-
-    public String getBorrowedAtString() {
-        return borrowedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    }
-
-    public String getActReturnedAtString() {
-        return actReturnedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    }
-
-    public String getReturnedAtString() {
-        if (returnedAt == null) {
-            return "";
-        }
-        return returnedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    public Transaction(String transactionCode, Date borrowedAt, Date estReturnedAt, Date returnedAt, Member member, String status, int totalBooks, String operatorName, int totalFines, Date updatedAt) {
+        this.transactionCode = transactionCode;
+        this.borrowedAt = borrowedAt;
+        this.estReturnedAt = estReturnedAt;
+        this.returnedAt = returnedAt;
+        this.member = member;
+        this.status = status;
+        this.totalBooks = totalBooks;
+        this.operatorName = operatorName;
+        this.totalFines = totalFines;
+        this.updatedAt = updatedAt;
     }
 
     @Override
     public String toString() {
-        String memberContent = "Member [";
-        memberContent += "id=" + member.getId() + ", ";
-        memberContent += "name=" + member.getName() + ", ";
-        memberContent += "email=" + member.getEmail() + ", ";
-        memberContent += "phone=" + member.getPhone() + ", ";
-        memberContent += "registeredAt=" + member.getRegisteredAt() + "]";
-
-        String content = "Transaction [";
-        content += "id=" + id + ", ";
-        content += "transactionCode=" + transactionCode + ", ";
-        content += "borrowedAt=" + borrowedAt + ", ";
-        content += "actReturnedAt=" + actReturnedAt + ", ";
-        content += "returnedAt=" + returnedAt + ", ";
-        content += "member=" + memberContent + ", ";
-        content += "status=" + status + ", ";
-        content += "totalBooks=" + totalBooks + ", ";
-        content += "operatorName=" + operatorName + ", ";
-        content += "totalFines=" + totalFines + "]";
-        return content;
+        return "Transaction{" +
+                "id=" + id +
+                ", transactionCode='" + transactionCode + '\'' +
+                ", borrowedAt=" + borrowedAt +
+                ", estReturnedAt=" + estReturnedAt +
+                ", returnedAt=" + returnedAt +
+                ", member=" + member +
+                ", status='" + status + '\'' +
+                ", totalBooks=" + totalBooks +
+                ", operatorName='" + operatorName + '\'' +
+                ", totalFines=" + totalFines +
+                ", updatedAt=" + updatedAt +
+                '}';
     }
 }

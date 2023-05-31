@@ -6,8 +6,11 @@ import me.chiqors.springbooks.config.Constant;
 import me.chiqors.springbooks.dto.BookDTO;
 import me.chiqors.springbooks.service.BookService;
 import me.chiqors.springbooks.service.LogService;
+import me.chiqors.springbooks.util.FormValidation;
+import me.chiqors.springbooks.util.JSONResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,28 +19,41 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin("*")
 @RequestMapping(Constant.API_PREFIX)
 public class BookController {
-    private final BookService bookService;
-    private final LogService logService;
-
     @Autowired
-    public BookController(BookService bookService, LogService logService) {
-        this.bookService = bookService;
-        this.logService = logService;
-    }
+    private FormValidation formValidation;
+    @Autowired
+    private BookService bookService;
+    @Autowired
+    private LogService logService;
 
     /**
      * Retrieves all books based on optional filtering, sorting, and pagination parameters.
      * @param title    Optional parameter to filter books by title.
-     * @return ResponseEntity containing a list of BookDTOs and an HTTP status code.
+     * @param page     Optional parameter to specify the page number of the results.
+     * @param size     Optional parameter to specify the number of results per page.
+     * @return ResponseEntity containing a JSONResponse and an HTTP status code.
      */
     @GetMapping("/books")
-    public ResponseEntity<?> getAllBooks(@RequestParam(required = false) String title) {
+    public ResponseEntity<JSONResponse> getAllBooks(@RequestParam(value = "title", required = false) String title,
+                                                    @RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
+                                                    @RequestParam(value = "size", required = false, defaultValue = "3") Integer size) {
         try {
-            List<BookDTO> bookDTOs = bookService.getAllBooks(title);
-            return new ResponseEntity<>(bookDTOs, HttpStatus.OK);
+            Page<BookDTO> bookDTOList = bookService.getAllBooks(title, page, size);
+            if (bookDTOList != null) {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Books retrieved", bookDTOList, null);
+                return ResponseEntity.ok(jsonResponse);
+            } else {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.NOT_FOUND.value(), "Books not found", null, null);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(jsonResponse);
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Invalid page or size", null, null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         } catch (Exception e) {
-            String errorMessage = "Failed to retrieve books";
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+            e.printStackTrace();
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to retrieve books", null, null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
         }
     }
 
@@ -47,18 +63,20 @@ public class BookController {
      * @return ResponseEntity containing a BookDTO and an HTTP status code.
      */
     @GetMapping("/book/{code}")
-    public ResponseEntity<?> getBookByCode(@PathVariable("code") String bookCode) {
+    public ResponseEntity<JSONResponse> getBookByCode(@PathVariable("code") String bookCode) {
         try {
             BookDTO bookDTO = bookService.getBookByCode(bookCode);
             if (bookDTO != null) {
-                return new ResponseEntity<>(bookDTO, HttpStatus.OK);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Book retrieved", bookDTO, null);
+                return ResponseEntity.ok(jsonResponse);
             } else {
-                String errorMessage = "Book with code: " + bookCode + " not found";
-                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.NOT_FOUND.value(), "Book not found", null, null);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(jsonResponse);
             }
         } catch (Exception e) {
-            String errorMessage = "Failed to retrieve book with code: " + bookCode;
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+            e.printStackTrace();
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to retrieve book", null, null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
         }
     }
 
@@ -68,40 +86,49 @@ public class BookController {
      * @return ResponseEntity containing a BookDTO and an HTTP status code.
      */
     @PostMapping("/books")
-    public ResponseEntity<?> createBook(@RequestBody BookDTO bookDTO) {
-        try {
+    public ResponseEntity<JSONResponse> createBook(@RequestBody BookDTO bookDTO) {
+        List<String> errors = formValidation.createBookValidation(bookDTO);
+        if (errors.isEmpty()) {
             BookDTO createdBookDTO = bookService.addBook(bookDTO);
-            logService.saveLog(Constant.API_PREFIX + "/books", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Book created");
-            return new ResponseEntity<>(createdBookDTO, HttpStatus.CREATED);
-        } catch (Exception e) {
-            String errorMessage = "Failed to create book";
-            logService.saveLog(Constant.API_PREFIX + "/books", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create book");
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+            if (createdBookDTO != null) {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.CREATED.value(), "Book created", createdBookDTO, null);
+                logService.saveLog(Constant.API_PREFIX+ "/books", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Book created");
+                return ResponseEntity.status(HttpStatus.CREATED).body(jsonResponse);
+            } else {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create book", null, null);
+                logService.saveLog(Constant.API_PREFIX+ "/books", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create book");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
+            }
+        } else {
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to create book", null, null);
+            logService.saveLog(Constant.API_PREFIX+ "/books", Constant.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Failed to create book");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
 
     /**
      * Updates a book by Code.
-     * @param bookCode   Code of the book to update.
      * @param bookDTO    BookDTO containing the book information to update.
      * @return ResponseEntity containing a BookDTO and an HTTP status code.
      */
-    @PutMapping("/books/{code}")
-    public ResponseEntity<?> updateBook(@PathVariable("code") String bookCode, @RequestBody BookDTO bookDTO) {
-        try {
-            BookDTO updatedBookDTO = bookService.updateBook(bookCode, bookDTO);
+    @PutMapping("/books")
+    public ResponseEntity<JSONResponse> updateBook(@RequestBody BookDTO bookDTO) {
+        List<String> errors = formValidation.updateBookValidation(bookDTO);
+        if (errors.isEmpty()) {
+            BookDTO updatedBookDTO = bookService.updateBook(bookDTO);
             if (updatedBookDTO != null) {
-                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "PUT", HttpStatus.OK.value(), "Book updated");
-                return new ResponseEntity<>(updatedBookDTO, HttpStatus.OK);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Book updated", updatedBookDTO, null);
+                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookDTO.getBookCode(), Constant.HOST, "PUT", HttpStatus.OK.value(), "Book updated");
+                return ResponseEntity.ok(jsonResponse);
             } else {
-                String errorMessage = "Book with code: " + bookCode + " not found";
-                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "PUT", HttpStatus.NOT_FOUND.value(), "Book not found");
-                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update book", null, null);
+                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookDTO.getBookCode(), Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update book");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
-        } catch (Exception e) {
-            String errorMessage = "Failed to update book with code: " + bookCode;
-            logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update book");
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        } else {
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to update book", null, null);
+            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookDTO.getBookCode(), Constant.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Failed to update book");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
 
@@ -111,22 +138,16 @@ public class BookController {
      * @return ResponseEntity containing a message and an HTTP status code.
      */
     @DeleteMapping("/books/{code}")
-    public ResponseEntity<?> destroyBook(@PathVariable("code") String bookCode) {
-        try {
-            boolean isDeleted = bookService.deleteBook(bookCode);
-            if (isDeleted) {
-                String successMessage = "Book with code: " + bookCode + " deleted successfully";
-                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), "Book deleted");
-                return new ResponseEntity<>(successMessage, HttpStatus.OK);
-            } else {
-                String errorMessage = "Book with code: " + bookCode + " not found";
-                logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.NOT_FOUND.value(), "Book not found");
-                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
-            }
-        } catch (Exception e) {
-            String errorMessage = "Failed to delete book with code: " + bookCode;
-            logService.saveLog(Constant.API_PREFIX + "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book");
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<JSONResponse> destroyBook(@PathVariable("code") String bookCode) {
+        boolean isDeleted = bookService.deleteBook(bookCode);
+        if (isDeleted) {
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Book deleted", null, null);
+            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), "Book deleted");
+            return ResponseEntity.ok(jsonResponse);
+        } else {
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book", null, null);
+            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
         }
     }
 }

@@ -1,5 +1,6 @@
 package me.chiqors.springbooks.service;
 
+import me.chiqors.springbooks.dto.BookDTO;
 import me.chiqors.springbooks.dto.DetailTransactionDTO;
 import me.chiqors.springbooks.dto.MemberDTO;
 import me.chiqors.springbooks.dto.TransactionDTO;
@@ -7,220 +8,306 @@ import me.chiqors.springbooks.model.Book;
 import me.chiqors.springbooks.model.DetailTransaction;
 import me.chiqors.springbooks.model.Member;
 import me.chiqors.springbooks.model.Transaction;
-
+import me.chiqors.springbooks.repository.BookRepository;
 import me.chiqors.springbooks.repository.DetailTransactionRepository;
+import me.chiqors.springbooks.repository.MemberRepository;
 import me.chiqors.springbooks.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service class for managing transactions.
+ */
 @Service
-@Transactional
 public class TransactionService {
-    private final TransactionRepository transactionRepository;
-    private final DetailTransactionRepository detailTransactionRepository; // not the service, since it will be having infinite loop
-    private final MemberService memberService;
-    private final BookService bookService;
-
-    // ------------------- CONSTRUCTOR -------------------
-
     @Autowired
-    public TransactionService(TransactionRepository transactionRepository, DetailTransactionRepository detailTransactionRepository, MemberService memberService, BookService bookService) {
-        this.transactionRepository = transactionRepository;
-        this.detailTransactionRepository = detailTransactionRepository;
-        this.memberService = memberService;
-        this.bookService = bookService;
-    }
+    private TransactionRepository transactionRepository;
+    @Autowired
+    private DetailTransactionRepository detailTransactionRepository;
+    @Autowired
+    private MemberRepository memberRepository;
+    @Autowired
+    private BookRepository bookRepository;
 
-    // ------------------- CONVERTER -------------------
-
+    /**
+     * Converts a Transaction entity to a TransactionDTO.
+     *
+     * @param transaction        the Transaction entity
+     * @param detailTransactions the list of DetailTransactionDTOs
+     * @return the TransactionDTO
+     */
     public TransactionDTO convertToDTO(Transaction transaction, List<DetailTransactionDTO> detailTransactions) {
-        TransactionDTO dto = new TransactionDTO();
-        // dto.setId(transaction.getId());
-        dto.setTransactionCode(transaction.getTransactionCode());
-        dto.setBorrowedAt(transaction.getBorrowedAtString());
-        dto.setActReturnedAt(transaction.getActReturnedAtString());
-        dto.setReturnedAt(transaction.getReturnedAtString());
-        dto.setMemberId(transaction.getMember().getId());
-        dto.setStatus(transaction.getStatus());
-        dto.setTotalBooks(transaction.getTotalBooks());
-        dto.setOperatorName(transaction.getOperatorName());
-        dto.setTotalFines(transaction.getTotalFines());
+        String borrowedAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(transaction.getBorrowedAt());
+        String actReturnedAt = new SimpleDateFormat("yyyy-MM-dd").format(transaction.getEstReturnedAt());
+        String returnedAt = transaction.getReturnedAt() == null ? null : new SimpleDateFormat("yyyy-MM-dd").format(transaction.getReturnedAt());
+        String updatedAt = transaction.getUpdatedAt() == null ? null : new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(transaction.getUpdatedAt());
 
-        // Map detail transactions to DTOs if needed
-        if (detailTransactions != null) {
-            dto.setDetailTransactions(detailTransactions);
-        }
+        MemberDTO memberDTO = convertMemberToDTO(transaction.getMember());
 
-        return dto;
+        return new TransactionDTO(
+                transaction.getTransactionCode(),
+                borrowedAt,
+                actReturnedAt,
+                returnedAt,
+                transaction.getStatus(),
+                transaction.getTotalBooks(),
+                transaction.getOperatorName(),
+                transaction.getTotalFines(),
+                updatedAt,
+                detailTransactions,
+                memberDTO
+        );
     }
 
+    /**
+     * Converts a DetailTransaction entity to a DetailTransactionDTO.
+     *
+     * @param detailTransaction the DetailTransaction entity
+     * @return the DetailTransactionDTO
+     */
     private DetailTransactionDTO convertDetailTransactionToDTO(DetailTransaction detailTransaction) {
-        DetailTransactionDTO dto = new DetailTransactionDTO();
-        dto.setId(detailTransaction.getId());
-        dto.setTransactionId(detailTransaction.getTransaction().getId());
-        dto.setBookId(detailTransaction.getBook().getId());
-        dto.setTotal(detailTransaction.getTotal());
-        return dto;
+        BookDTO bookDTO = convertBookToDTO(detailTransaction.getBook());
+
+        return new DetailTransactionDTO(
+                detailTransaction.getTotal(),
+                detailTransaction.getBook().getBookCode(),
+                bookDTO
+        );
     }
 
-    public Transaction convertToEntity(TransactionDTO dto) {
-        MemberDTO memberDTO = memberService.getMemberById(dto.getMemberId());
-        Member member = memberService.convertToEntity(memberDTO);
+    private BookDTO convertBookToDTO(Book book) {
+        String publishedAt = new SimpleDateFormat("yyyy-MM-dd").format(book.getPublishedAt());
+        String registeredAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(book.getRegisteredAt());
+        String updatedAt = book.getUpdatedAt() == null ? null : new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(book.getUpdatedAt());
 
-        Transaction transaction = new Transaction();
-        // transaction.setId(dto.getId());
-        transaction.setTransactionCode(dto.getTransactionCode());
-        transaction.setBorrowedAt(LocalDate.parse(dto.getBorrowedAt()));
-        transaction.setActReturnedAt(LocalDate.parse(dto.getActReturnedAt()));
-        transaction.setReturnedAt(transaction.getReturnedAt() != null ? LocalDate.parse(dto.getReturnedAt()) : null);
-        transaction.setMember(member);
-        transaction.setStatus(dto.getStatus());
-        transaction.setTotalBooks(dto.getTotalBooks());
-        transaction.setOperatorName(dto.getOperatorName());
-        transaction.setTotalFines(dto.getTotalFines());
-
-        List<DetailTransaction> detailTransactions = dto.getDetailTransactions().stream()
-                .map(detailTransactionDto -> {
-                    DetailTransaction detailTransaction = new DetailTransaction();
-                    detailTransaction.setTransaction(transaction);
-                    detailTransaction.setBook(bookService.convertToEntity(bookService.getBookById(detailTransactionDto.getBookId())));
-                    detailTransaction.setTotal(detailTransactionDto.getTotal());
-                    return detailTransaction;
-                })
-                .collect(Collectors.toList());
-
-        transaction.setDetailTransactions(detailTransactions);
-
-        return transaction;
+        return new BookDTO(
+                book.getTitle(),
+                book.getAuthor(),
+                book.getStock(),
+                publishedAt,
+                registeredAt,
+                book.getBookCode(),
+                updatedAt
+        );
     }
 
-    private DetailTransaction convertDetailTransactionToEntity(DetailTransactionDTO detailTransactionDTO, Transaction transaction) {
-        DetailTransaction detailTransaction = new DetailTransaction();
-        detailTransaction.setTransaction(transaction);
-        detailTransaction.setBook(bookService.convertToEntity(bookService.getBookById(detailTransactionDTO.getBookId())));
-        detailTransaction.setTotal(detailTransactionDTO.getTotal());
-        return detailTransaction;
+    private MemberDTO convertMemberToDTO(Member member) {
+        String registeredAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(member.getRegisteredAt());
+        String updatedAt = member.getUpdatedAt() == null ? null : new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(member.getUpdatedAt());
+
+        return new MemberDTO(
+                member.getName(),
+                member.getEmail(),
+                member.getPhone(),
+                registeredAt,
+                member.getMemberCode(),
+                updatedAt
+        );
     }
 
-    // ------------------- CRUD -------------------
+    /**
+     * Retrieves all transactions with optional filtering, sorting, and pagination.
+     *
+     * @param borrowedAt     the borrowed date filter (optional)
+     * @param memberCode     the member Code filter (optional)
+     * @param page           the page number (optional)
+     * @param size           the page size (optional)
+     * @return the paginated list of transactions
+     */
+    public Page<TransactionDTO> getAllTransactions(String borrowedAt, String memberCode, Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        Page<Transaction> transactionPage;
+        Member member;
 
-    public List<TransactionDTO> getAllTransactions(String date, Long memberId, String sort, Integer page, Integer size) {
-        List<Transaction> transactions = transactionRepository.findAll();
-
-        if (date != null) {
-            transactions = transactions.stream()
-                    .filter(transaction -> transaction.getBorrowedAtString().equals(date))
-                    .collect(Collectors.toList());
-        }
-
-        if (memberId != null) {
-            transactions = transactions.stream()
-                    .filter(transaction -> transaction.getMember().getId() == memberId)
-                    .collect(Collectors.toList());
-        }
-
-        if (sort != null) {
-            if (sort.equals("asc")) {
-                transactions.sort(Comparator.comparing(Transaction::getBorrowedAt));
-            } else if (sort.equals("desc")) {
-                transactions.sort(Comparator.comparing(Transaction::getBorrowedAt).reversed());
-            }
-        }
-
-        if (page != null && size != null) {
-            int start = (page - 1) * size;
-            int end = Math.min(start + size, transactions.size());
-
-            if (start > transactions.size()) {
-                return null;
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            if (borrowedAt != null && memberCode != null) {
+                Date borrowedAtDate = dateFormat.parse(borrowedAt);
+                member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
+                transactionPage = transactionRepository.findAllByBorrowedAtContainingAndMemberIdOrderByBorrowedAtDesc(borrowedAtDate, member.getId(), pageable);
+            } else if (borrowedAt != null) {
+                Date borrowedAtDate = dateFormat.parse(borrowedAt);
+                transactionPage = transactionRepository.findAllByBorrowedAtContainingOrderByBorrowedAtDesc(borrowedAtDate, pageable);
+            } else if (memberCode != null) {
+                member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
+                transactionPage = transactionRepository.findAllByMemberIdOrderByBorrowedAtDesc(member.getId(), pageable);
+            } else {
+                transactionPage = transactionRepository.findAllByOrderByBorrowedAtDesc(pageable);
             }
 
-            transactions = transactions.subList(start, end);
+            // no need to add data for detailTransactions, just add array empty
+            List<TransactionDTO> transactionDTOs = transactionPage.getContent().stream()
+                    .map(transaction -> convertToDTO(transaction, new ArrayList<>()))
+                    .collect(Collectors.toList());
+
+            // add member: { name } to transactionDTO
+            for (int i = 0; i < transactionDTOs.size(); i++) {
+                MemberDTO memberDTO = convertMemberToDTO(transactionPage.getContent().get(i).getMember());
+                // remove unnecessary data except name and memberCode
+                memberDTO.setEmail(null);
+                memberDTO.setPhone(null);
+                memberDTO.setRegisteredAt(null);
+                memberDTO.setUpdatedAt(null);
+                transactionDTOs.get(i).setMember(memberDTO);
+            }
+
+            return new PageImpl<>(transactionDTOs, pageable, transactionPage.getTotalElements());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
-
-        List<TransactionDTO> transactionDTOs = new ArrayList<>();
-        List<DetailTransactionDTO> detailTransactionDTOs = new ArrayList<>();
-
-        for (Transaction transaction : transactions) {
-            TransactionDTO transactionDTO = convertToDTO(transaction, detailTransactionDTOs);
-            transactionDTOs.add(transactionDTO);
-        }
-
-        return transactionDTOs;
     }
 
+    /**
+     * Retrieves a transaction by its code.
+     *
+     * @param transactionCode the transaction code
+     * @return the TransactionDTO
+     */
     public TransactionDTO getTransactionByCode(String transactionCode) {
         Transaction transaction = transactionRepository.findByTransactionCode(transactionCode);
-
-        List<DetailTransactionDTO> detailTransactions = transaction.getDetailTransactions().stream()
-                .map(this::convertDetailTransactionToDTO)
-                .collect(Collectors.toList());
-
-        return convertToDTO(transaction, detailTransactions);
-    }
-
-    public TransactionDTO addTransaction(TransactionDTO dto) {
-        // Generate transaction code. Format: T<day><month><year><hour><minute><second><memberId>
-        String transactionCode = "T" + LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyyyy")) + LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + dto.getMemberId();
-        dto.setTransactionCode(transactionCode);
-        dto.setBorrowedAt(LocalDate.now().toString());
-        dto.setStatus("borrowed");
-
-        Transaction transaction = convertToEntity(dto);
-        Transaction savedTransaction = transactionRepository.save(transaction);
-
-        List<DetailTransaction> detailTransactions = dto.getDetailTransactions().stream()
-                .map(detailTransactionDTO -> convertDetailTransactionToEntity(detailTransactionDTO, savedTransaction))
-                .collect(Collectors.toList());
-
-        detailTransactionRepository.saveAll(detailTransactions);
-
-        return dto;
-    }
-
-    public TransactionDTO updateTransaction(String transactionCode) {
-        Transaction transaction = transactionRepository.findByTransactionCode(transactionCode);
-
-        transaction.setReturnedAt(LocalDate.now());
-        transaction.setStatus("returned");
-
-        List<DetailTransaction> detailTransactions = transaction.getDetailTransactions();
-
-        for (DetailTransaction detailTransaction : detailTransactions) {
-            Book book = detailTransaction.getBook();
-            book.setStock(book.getStock() + detailTransaction.getTotal());
-            bookService.updateBook(book.getBookCode(), bookService.convertToDTO(book));
-        }
-
-        // get current date and check if it's past the actReturnedAt date
-        LocalDate currentDate = LocalDate.now();
-        LocalDate actReturnedAt = transaction.getActReturnedAt();
-
-        if (currentDate.isAfter(actReturnedAt)) {
-            // calculate the difference between the current date and the actReturnedAt date
-            double daysBetween = ChronoUnit.DAYS.between(actReturnedAt, currentDate);
-            double totalFines = daysBetween * 1000;
-            int parsedTotalFines = Integer.parseInt(String.valueOf(totalFines));
-            transaction.setTotalFines(parsedTotalFines);
+        if (transaction == null) {
+            return null;
         } else {
-            transaction.setTotalFines(transaction.getTotalFines());
+            List<DetailTransactionDTO> detailTransactionDTOs = transaction.getDetailTransactions().stream()
+                    .map(this::convertDetailTransactionToDTO)
+                    .collect(Collectors.toList());
+            return convertToDTO(transaction, detailTransactionDTOs);
         }
+    }
 
-        transactionRepository.save(transaction);
+    public boolean isValidTransactionCode(String transactionCode) {
+        Transaction transaction = transactionRepository.findByTransactionCode(transactionCode);
+        return transaction != null;
+    }
 
-        return convertToDTO(transaction, detailTransactions.stream()
-                .map(this::convertDetailTransactionToDTO)
-                .collect(Collectors.toList()));
+    /**
+     * Adds a new transaction.
+     *
+     * @param dto the TransactionDTO
+     * @return the created TransactionDTO
+     */
+    @Transactional
+    public TransactionDTO addTransaction(TransactionDTO dto) {
+        // Generate transaction code. Format: T<day><month><year><hour><minute><second><memberCode>
+        Date currentDate = new Date();
+        String borrowedAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(currentDate);
+        String transactionCode = "T" + new SimpleDateFormat("ddMMyyyyHHmmss").format(currentDate) + dto.getMember().getMemberCode();
+        dto.setTransactionCode(transactionCode);
+        dto.setBorrowedAt(borrowedAt);
+        dto.setStatus("borrowed");
+        dto.setTotalFines(0);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            Date estReturnedAt = dateFormat.parse(dto.getEstReturnedAt());
+
+            // get member object from memberRepository (with memberCode)
+            Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(dto.getMember().getMemberCode());
+
+            // get Total Books from detailTransactionsDTO.total for each detailTransactionDTO
+            int totalBooks = 0;
+            for (DetailTransactionDTO detailTransactionDTO : dto.getDetailTransactions()) {
+                totalBooks += detailTransactionDTO.getTotal();
+            }
+            dto.setTotalBooks(totalBooks);
+
+            Transaction transaction = new Transaction(
+                    dto.getTransactionCode(),
+                    currentDate,
+                    estReturnedAt,
+                    null,
+                    member,
+                    dto.getStatus(),
+                    totalBooks,
+                    dto.getOperatorName(),
+                    dto.getTotalFines(),
+                    null
+            );
+
+            transactionRepository.save(transaction);
+
+            List<DetailTransactionDTO> detailTransactions = dto.getDetailTransactions();
+
+            for (DetailTransactionDTO detailTransactionDTO : detailTransactions) {
+                // get book object from bookRepository (with bookCode)
+                Book book = bookRepository.findByBookCodeAndDeletedIsFalse(detailTransactionDTO.getBook().getBookCode());
+                BookDTO bookDTO = convertBookToDTO(book);
+
+                DetailTransaction detailTransaction = new DetailTransaction(
+                        transaction,
+                        book,
+                        detailTransactionDTO.getTotal()
+                );
+
+                detailTransactionRepository.save(detailTransaction);
+
+                // set book DTO for detailTransactionDTO
+                detailTransactionDTO.setBook(bookDTO);
+
+                // update book stock
+                book.setStock(book.getStock() - detailTransactionDTO.getTotal());
+                bookRepository.save(book);
+            }
+
+            return dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Updates a transaction by its code.
+     *
+     * @param transactionDTO the TransactionDTO
+     * @return the updated TransactionDTO
+     */
+    @Transactional
+    public TransactionDTO updateTransaction(TransactionDTO transactionDTO) {
+        Transaction transaction = transactionRepository.findByTransactionCode(transactionDTO.getTransactionCode());
+
+        if (transaction.getStatus().equals("borrowed")) {
+            transaction.setStatus("returned");
+            transaction.setReturnedAt(new Date());
+            transaction.setUpdatedAt(new Date());
+
+            // calculate total fines
+            if (transaction.getEstReturnedAt().compareTo(transaction.getReturnedAt()) < 0) {
+                long diff = transaction.getReturnedAt().getTime() - transaction.getEstReturnedAt().getTime();
+                long diffDays = diff / (24 * 60 * 60 * 1000);
+                transaction.setTotalFines((int) diffDays * 1000); // Rp. 1.000 per day
+            } else {
+                transaction.setTotalFines(0);
+            }
+
+            transactionRepository.save(transaction);
+
+            List<DetailTransaction> detailTransactions = transaction.getDetailTransactions();
+
+            for (DetailTransaction detailTransaction : detailTransactions) {
+                // get book object from bookRepository (with bookCode)
+                Book book = bookRepository.findByBookCodeAndDeletedIsFalse(detailTransaction.getBook().getBookCode());
+
+                // update book stock
+                book.setStock(book.getStock() + detailTransaction.getTotal());
+                bookRepository.save(book);
+            }
+
+            return convertToDTO(transaction, null);
+        } else {
+            return null;
+        }
     }
 }
-

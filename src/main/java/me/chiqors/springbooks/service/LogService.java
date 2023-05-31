@@ -7,7 +7,6 @@ import me.chiqors.springbooks.model.Log;
 import me.chiqors.springbooks.repository.LogRepository;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -24,52 +23,72 @@ import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import java.util.stream.Collectors;
 
+/**
+ * Service class for handling Log-related operations.
+ */
 @Service
 public class LogService {
+    @Autowired
     private final LogRepository logRepository;
+    @Autowired
     private final ObjectMapper objectMapper;
 
-    // -----------------------------------------------------
-    // ------------------ CONSTRUCTOR ----------------------
-    // -----------------------------------------------------
-
-    @Autowired
+    /**
+     * Constructor for LogService.
+     *
+     * @param logRepository the LogRepository
+     * @param objectMapper  the ObjectMapper
+     */
     public LogService(LogRepository logRepository, ObjectMapper objectMapper) {
         this.logRepository = logRepository;
         this.objectMapper = objectMapper;
     }
 
-    // -----------------------------------------------------
-    // ------------------ CONVERTER ------------------------
-    // -----------------------------------------------------
-
+    /**
+     * Converts a Log entity to a LogDTO.
+     *
+     * @param log the Log entity
+     * @return the corresponding LogDTO
+     */
     public LogDTO convertToDTO(Log log) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return new LogDTO(formatter.format(log.getTimestamp()), log.getUrlPath(), log.getHostName(),
                 log.getHttpMethod(), log.getHttpCode(), log.getMessage());
     }
 
+    /**
+     * Converts a LogDTO to a Log entity.
+     *
+     * @param logDTO the LogDTO
+     * @return the corresponding Log entity
+     */
     public Log convertToEntity(LogDTO logDTO) {
         return new Log(logDTO.getUrlPath(), logDTO.getHostName(), logDTO.getHttpMethod(),
                 logDTO.getHttpCode(), logDTO.getMessage());
     }
 
-    // -----------------------------------------------------
-    // ------------------ LOG BACKUP -----------------------
-    // -----------------------------------------------------
-
+    /**
+     * Saves a log entry to the database.
+     *
+     * @param urlPath    the URL path
+     * @param hostName   the host name
+     * @param httpMethod the HTTP method
+     * @param httpCode   the HTTP status code
+     * @param message    the log message
+     */
     public void saveLog(String urlPath, String hostName, String httpMethod, int httpCode, String message) {
         Log log = new Log(urlPath, hostName, httpMethod, httpCode, message);
         logRepository.save(log);
     }
 
-    // -----------------------------------------------------
-    // ------------------ SCHEDULED TASKS ------------------
-    // -----------------------------------------------------
-
-    @Scheduled(cron = "0 0 0 */7 * *") // Every 7 days at 00:00:00
+    /**
+     * Scheduled task to backup logs from the database to the logs folder.
+     * Runs every 7 days at 00:00:00.
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    @Scheduled(cron = "0 0 0 */7 * *")
     public void backupLogsFromDBtoLogsFolder() throws IOException {
         createLogBackupFolderIfNotExists();
 
@@ -94,6 +113,11 @@ public class LogService {
         deleteLogFilesExceptArchive(zipFileName);
     }
 
+    /**
+     * Creates the log backup folder if it does not exist.
+     *
+     * @throws IOException if an I/O error occurs
+     */
     private void createLogBackupFolderIfNotExists() throws IOException {
         File logDirectory = new File(Constant.LOGS_DIRECTORY);
         if (!logDirectory.exists()) {
@@ -101,6 +125,12 @@ public class LogService {
         }
     }
 
+    /**
+     * Zips the log files into a single archive.
+     *
+     * @param zipFileName the name of the zip archive
+     * @throws IOException if an I/O error occurs
+     */
     private void zipLogFiles(String zipFileName) throws IOException {
         List<File> logFiles = getLogFiles();
 
@@ -115,6 +145,11 @@ public class LogService {
         }
     }
 
+    /**
+     * Deletes log files except the specified archive file.
+     *
+     * @param archiveFileName the name of the archive file
+     */
     private void deleteLogFilesExceptArchive(String archiveFileName) {
         List<File> logFiles = getLogFiles();
         for (File logFile : logFiles) {
@@ -124,6 +159,11 @@ public class LogService {
         }
     }
 
+    /**
+     * Retrieves the list of log files in the logs directory.
+     *
+     * @return the list of log files
+     */
     private List<File> getLogFiles() {
         File logDirectory = new File(Constant.LOGS_DIRECTORY);
         File[] files = logDirectory.listFiles((dir, name) -> name.endsWith(Constant.LOG_FILE_EXTENSION));

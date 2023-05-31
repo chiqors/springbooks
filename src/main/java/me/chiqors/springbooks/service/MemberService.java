@@ -4,77 +4,62 @@ import me.chiqors.springbooks.dto.MemberDTO;
 import me.chiqors.springbooks.model.Member;
 import me.chiqors.springbooks.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
+/**
+ * Service class for handling Member-related operations.
+ */
 @Service
 public class MemberService {
-    private final MemberRepository memberRepository;
-
-    // ------------------- CONSTRUCTOR -------------------
-
     @Autowired
-    public MemberService(MemberRepository memberRepository) {
-        this.memberRepository = memberRepository;
-    }
+    private MemberRepository memberRepository;
 
-    // ------------------- CONVERTER -------------------
-
+    /**
+     * Converts a Member entity to a MemberDTO.
+     *
+     * @param member the Member entity
+     * @return the corresponding MemberDTO
+     */
     public MemberDTO convertToDTO(Member member) {
-        MemberDTO memberDTO = new MemberDTO();
-        // memberDTO.setId(member.getId());
-        memberDTO.setName(member.getName());
-        memberDTO.setEmail(member.getEmail());
-        memberDTO.setPhone(member.getPhone());
-        memberDTO.setRegisteredAt(member.getRegisteredAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        memberDTO.setDeleted(member.isDeleted());
-        memberDTO.setMemberCode(member.getMemberCode());
-        return memberDTO;
+        String registeredAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(member.getRegisteredAt());
+        String updatedAt = member.getUpdatedAt() != null ? new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(member.getUpdatedAt()) : null;
+
+        return new MemberDTO(member.getName(), member.getEmail(), member.getPhone(), registeredAt, member.getMemberCode(), updatedAt);
     }
 
-    public Member convertToEntity(MemberDTO memberDTO) {
-        Member member = new Member();
-        // member.setId(memberDTO.getId());
-        member.setName(memberDTO.getName());
-        member.setEmail(memberDTO.getEmail());
-        member.setPhone(memberDTO.getPhone());
-        member.setRegisteredAt(LocalDate.parse(memberDTO.getRegisteredAt(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        member.setDeleted(memberDTO.isDeleted());
-        member.setMemberCode(memberDTO.getMemberCode());
-        return member;
-    }
-
-    // ------------------- CRUD -------------------
-
-    public List<MemberDTO> getAllMembers(String name) {
-        List<Member> members;
+    /**
+     * Retrieves all members with optional name filtering.
+     *
+     * @param name the name filter (optional)
+     * @param page the page number (optional)
+     * @param size the page size (optional)
+     * @return the list of MemberDTOs
+     */
+    public Page<MemberDTO> getAllMembers(String name, Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        Page<Member> memberPage;
 
         if (name != null) {
-            members = memberRepository.findByNameContainingAndDeletedIsFalse(name);
+            memberPage = memberRepository.findByNameContainingIgnoreCaseAndDeletedIsFalseOrderByRegisteredAtDesc(name, pageable);
         } else {
-            members = memberRepository.findAllMembersByDeletedIsFalse();
+            memberPage = memberRepository.findByDeletedIsFalseOrderByRegisteredAtDesc(pageable);
         }
 
-        return members.stream()
-                .sorted(Comparator.comparing(Member::getName))
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        return memberPage.map(this::convertToDTO);
     }
 
-    public MemberDTO getMemberById(long id) {
-        Member member = memberRepository.findByIdAndDeletedIsFalse(id);
-        if (member != null) {
-            return convertToDTO(member);
-        }
-
-        return null;
-    }
-
+    /**
+     * Retrieves a member by its member code.
+     *
+     * @param memberCode the member code
+     * @return the corresponding MemberDTO
+     */
     public MemberDTO getMemberByCode(String memberCode) {
         Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
         if (member != null) {
@@ -84,28 +69,52 @@ public class MemberService {
         return null;
     }
 
+    public boolean isValidMemberCode(String memberCode) {
+        Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
+        return member != null;
+    }
+
+    /**
+     * Adds a new member.
+     *
+     * @param memberDTO the MemberDTO
+     * @return the created MemberDTO
+     */
     public MemberDTO addMember(MemberDTO memberDTO) {
-        Member member = new Member();
-        member.setName(memberDTO.getName());
-        member.setEmail(memberDTO.getEmail());
-        member.setPhone(memberDTO.getPhone());
-        member.setRegisteredAt(LocalDate.now());
-        member.setDeleted(false);
-        // generate member code, format: M<day><month><year><id>
-        String memberCode = "M" + LocalDate.now().format(DateTimeFormatter.ofPattern("ddMMyy")) + member.getId();
-        member.setMemberCode(memberCode);
+        // generate member code, format: M<day><month><year><hour><minute><second><A-Z>
+        SimpleDateFormat formatter = new SimpleDateFormat("ddMMyyHHmmss");
+        String generateChar = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String memberCode = "M" + formatter.format(memberDTO.getRegisteredAt()) + generateChar.charAt((int) (Math.random() * generateChar.length()));
+
+        Date registeredAt = new Date();
+
+        Member member = new Member(memberDTO.getName(), memberDTO.getEmail(), memberDTO.getPhone(), registeredAt, memberCode, null);
 
         memberRepository.save(member);
 
         return convertToDTO(member);
     }
 
-    public MemberDTO updateMember(String memberCode, MemberDTO memberDTO) {
-        Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
+    /**
+     * Updates a member by its member code.
+     *
+     * @param memberDTO  the updated MemberDTO
+     * @return the updated MemberDTO
+     */
+    public MemberDTO updateMember(MemberDTO memberDTO) {
+        Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberDTO.getMemberCode());
         if (member != null) {
-            member.setName(memberDTO.getName());
-            member.setEmail(memberDTO.getEmail());
-            member.setPhone(memberDTO.getPhone());
+            if (memberDTO.getName() != null) {
+                member.setName(memberDTO.getName());
+            }
+            if (memberDTO.getEmail() != null) {
+                member.setEmail(memberDTO.getEmail());
+            }
+            if (memberDTO.getPhone() != null) {
+                member.setPhone(memberDTO.getPhone());
+            }
+
+            member.setUpdatedAt(new Date());
 
             memberRepository.save(member);
 
@@ -115,16 +124,22 @@ public class MemberService {
         return null;
     }
 
+    /**
+     * Deletes a member by its member code.
+     *
+     * @param memberCode the member code
+     * @return true if the member was deleted successfully, false otherwise
+     */
     public boolean deleteMember(String memberCode) {
         Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
         if (member != null) {
             member.setDeleted(true);
+            member.setDeletedAt(new Date());
 
             memberRepository.save(member);
 
             return true;
         }
-
         return false;
     }
 }

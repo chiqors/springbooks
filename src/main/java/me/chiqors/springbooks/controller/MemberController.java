@@ -4,7 +4,10 @@ import me.chiqors.springbooks.config.Constant;
 import me.chiqors.springbooks.dto.MemberDTO;
 import me.chiqors.springbooks.service.LogService;
 import me.chiqors.springbooks.service.MemberService;
+import me.chiqors.springbooks.util.FormValidation;
+import me.chiqors.springbooks.util.JSONResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,32 +16,40 @@ import java.util.List;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping("/api")
+@RequestMapping(Constant.API_PREFIX)
 public class MemberController {
-    private final MemberService memberService;
-    private final LogService logService;
-
     @Autowired
-    public MemberController(MemberService memberService, LogService logService) {
-        this.memberService = memberService;
-        this.logService = logService;
-    }
-
+    private FormValidation formValidation;
+    @Autowired
+    private MemberService memberService;
+    @Autowired
+    private LogService logService;
 
     /**
      * Retrieves all members based on optional filtering, sorting, and pagination parameters.
      *
      * @param name    Optional parameter to filter members by name.
+     * @param page    Optional parameter to specify the page number to retrieve.
+     * @param size    Optional parameter to specify the number of members to retrieve per page.
      * @return ResponseEntity containing a list of MemberDTOs and an HTTP status code.
      */
     @GetMapping("/members")
-    public ResponseEntity<?> getAllMembers(@RequestParam(required = false) String name) {
+    public ResponseEntity<JSONResponse> getAllMembers(@RequestParam(required = false) String name,
+                                                      @RequestParam(required = false, defaultValue = "1") int page,
+                                                      @RequestParam(required = false, defaultValue = "3") int size) {
         try {
-            List<MemberDTO> memberDTOs = memberService.getAllMembers(name);
-            return new ResponseEntity<>(memberDTOs, HttpStatus.OK);
+            Page<MemberDTO> memberDTOList = memberService.getAllMembers(name, page, size);
+            if (memberDTOList != null) {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Members retrieved", memberDTOList, null);
+                return ResponseEntity.ok(jsonResponse);
+            } else {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.NOT_FOUND.value(), "Members not found", null, null);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(jsonResponse);
+            }
         } catch (Exception e) {
-            String errorMessage = "Failed to retrieve members";
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+            e.printStackTrace();
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to retrieve members", null, null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
         }
     }
 
@@ -49,18 +60,20 @@ public class MemberController {
      * @return ResponseEntity containing a MemberDTO and an HTTP status code.
      */
     @GetMapping("/member/{code}")
-    public ResponseEntity<?> getMemberByCode(@PathVariable("code") String memberCode) {
+    public ResponseEntity<JSONResponse> getMemberByCode(@PathVariable("code") String memberCode) {
         try {
             MemberDTO memberDTO = memberService.getMemberByCode(memberCode);
             if (memberDTO != null) {
-                return new ResponseEntity<>(memberDTO, HttpStatus.OK);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Member retrieved", memberDTO, null);
+                return ResponseEntity.ok(jsonResponse);
             } else {
-                String errorMessage = "Member with code: " + memberCode + " not found";
-                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.NOT_FOUND.value(), "Member not found", null, null);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(jsonResponse);
             }
         } catch (Exception e) {
-            String errorMessage = "Failed to retrieve member";
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+            e.printStackTrace();
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to retrieve member", null, null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
         }
     }
 
@@ -71,41 +84,50 @@ public class MemberController {
      * @return ResponseEntity containing a MemberDTO and an HTTP status code.
      */
     @PostMapping("/members")
-    public ResponseEntity<?> createMember(@RequestBody MemberDTO memberDTO) {
-        try {
+    public ResponseEntity<JSONResponse> createMember(@RequestBody MemberDTO memberDTO) {
+        List<String> errors = formValidation.createMemberValidation(memberDTO);
+        if (errors.isEmpty()) {
             MemberDTO createdMemberDTO = memberService.addMember(memberDTO);
-            logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Created member with code: " + createdMemberDTO.getMemberCode());
-            return new ResponseEntity<>(createdMemberDTO, HttpStatus.CREATED);
-        } catch (Exception e) {
-            String errorMessage = "Failed to create member";
-            logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+            if (createdMemberDTO != null) {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.CREATED.value(), "Member created", createdMemberDTO, null);
+                logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Created member with code: " + createdMemberDTO.getMemberCode());
+                return ResponseEntity.status(HttpStatus.CREATED).body(jsonResponse);
+            } else {
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create member", null, null);
+                logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create member");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
+            }
+        } else {
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to create member", null, errors);
+            logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Failed to create member");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
 
     /**
      * Updates a member by Code.
      *
-     * @param memberCode    Code of the member to update.
      * @param memberDTO     MemberDTO containing the updated member information.
      * @return ResponseEntity containing a MemberDTO and an HTTP status code.
      */
-    @PutMapping("/members/{code}")
-    public ResponseEntity<?> updateMember(@PathVariable("code") String memberCode, @RequestBody MemberDTO memberDTO) {
-        try {
-            MemberDTO updatedMemberDTO = memberService.updateMember(memberCode, memberDTO);
+    @PutMapping("/members")
+    public ResponseEntity<JSONResponse> updateMember(@RequestBody MemberDTO memberDTO) {
+        List<String> errors = formValidation.updateMemberValidation(memberDTO);
+        if (errors.isEmpty()) {
+            MemberDTO updatedMemberDTO = memberService.updateMember(memberDTO);
             if (updatedMemberDTO != null) {
-                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "PUT", HttpStatus.OK.value(), "Updated member with code: " + memberCode);
-                return new ResponseEntity<>(updatedMemberDTO, HttpStatus.OK);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Member updated", updatedMemberDTO, null);
+                logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "PUT", HttpStatus.OK.value(), "Updated member with code: " + updatedMemberDTO.getMemberCode());
+                return ResponseEntity.ok(jsonResponse);
             } else {
-                String errorMessage = "Member with code: " + memberCode + " not found";
-                logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "PUT", HttpStatus.NOT_FOUND.value(), errorMessage);
-                return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
+                JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update member", null, null);
+                logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update member");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
-        } catch (Exception e) {
-            String errorMessage = "Failed to update member";
-            logService.saveLog(Constant.API_PREFIX + "/members/" + memberCode, Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), errorMessage);
-            return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+        } else {
+            JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to update member", null, errors);
+            logService.saveLog(Constant.API_PREFIX + "/members", Constant.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Failed to update member");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
 
