@@ -1,7 +1,7 @@
 package me.chiqors.springbooks.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import me.chiqors.springbooks.config.Constant;
+import me.chiqors.springbooks.config.ApplicationProperties;
 import me.chiqors.springbooks.dto.LogDTO;
 import me.chiqors.springbooks.model.Log;
 import me.chiqors.springbooks.repository.LogRepository;
@@ -96,18 +96,18 @@ public class LogService {
 
         for (int i = 6; i >= 0; i--) {
             LocalDate date = LocalDate.now().minusDays(i);
-            String logFileName = Constant.LOG_FILE_PREFIX + dateFormatter.format(date) + Constant.LOG_FILE_EXTENSION;
+            String logFileName = ApplicationProperties.LOG_FILE_PREFIX + dateFormatter.format(date) + ApplicationProperties.LOG_FILE_EXTENSION;
 
             List<Log> logs = logRepository.getLogByTimestampBetween(date.atStartOfDay(), date.plusDays(1).atStartOfDay());
             String logsJson = objectMapper.writeValueAsString(logs);
 
-            Path logFilePath = Paths.get(Constant.LOGS_DIRECTORY, logFileName);
+            Path logFilePath = Paths.get(ApplicationProperties.LOGS_DIRECTORY, logFileName);
             Files.write(logFilePath, logsJson.getBytes());
 
             logRepository.deleteAll(logs);
         }
 
-        String zipFileName = Constant.LOG_FILE_PREFIX + dateFormatter.format(LocalDate.now()) + ".zip";
+        String zipFileName = ApplicationProperties.LOG_FILE_PREFIX + dateFormatter.format(LocalDate.now()) + ".zip";
         zipLogFiles(zipFileName);
 
         deleteLogFilesExceptArchive(zipFileName);
@@ -119,7 +119,7 @@ public class LogService {
      * @throws IOException if an I/O error occurs
      */
     private void createLogBackupFolderIfNotExists() throws IOException {
-        File logDirectory = new File(Constant.LOGS_DIRECTORY);
+        File logDirectory = new File(ApplicationProperties.LOGS_DIRECTORY);
         if (!logDirectory.exists()) {
             FileUtils.forceMkdir(logDirectory);
         }
@@ -135,7 +135,7 @@ public class LogService {
         List<File> logFiles = getLogFiles();
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(
-                Files.newOutputStream(Paths.get(Constant.LOGS_DIRECTORY, zipFileName)))) {
+                Files.newOutputStream(Paths.get(ApplicationProperties.LOGS_DIRECTORY, zipFileName)))) {
             for (File logFile : logFiles) {
                 ZipEntry zipEntry = new ZipEntry(logFile.getName());
                 zipOutputStream.putNextEntry(zipEntry);
@@ -165,8 +165,8 @@ public class LogService {
      * @return the list of log files
      */
     private List<File> getLogFiles() {
-        File logDirectory = new File(Constant.LOGS_DIRECTORY);
-        File[] files = logDirectory.listFiles((dir, name) -> name.endsWith(Constant.LOG_FILE_EXTENSION));
+        File logDirectory = new File(ApplicationProperties.LOGS_DIRECTORY);
+        File[] files = logDirectory.listFiles((dir, name) -> name.endsWith(ApplicationProperties.LOG_FILE_EXTENSION));
         if (files != null) {
             return new ArrayList<>(Arrays.asList(files));
         }

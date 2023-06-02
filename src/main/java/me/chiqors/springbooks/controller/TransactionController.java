@@ -1,6 +1,6 @@
 package me.chiqors.springbooks.controller;
 
-import me.chiqors.springbooks.config.Constant;
+import me.chiqors.springbooks.config.ApplicationProperties;
 import me.chiqors.springbooks.dto.TransactionDTO;
 import me.chiqors.springbooks.service.LogService;
 import me.chiqors.springbooks.service.TransactionService;
@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping(Constant.API_PREFIX)
+@RequestMapping("${api.prefix}") // cant use ApplicationProperties.API_PREFIX since it is static final
 public class TransactionController {
     @Autowired
     private FormValidation formValidation;
@@ -93,17 +93,17 @@ public class TransactionController {
                 TransactionDTO createdTransactionDTO = transactionService.addTransaction(transactionDTO);
                 if (createdTransactionDTO != null) {
                     JSONResponse jsonResponse = new JSONResponse(HttpStatus.CREATED.value(), "Transaction created", createdTransactionDTO, null);
-                    logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Transaction created");
+                    logService.saveLog(ApplicationProperties.API_PREFIX + "/transactions", ApplicationProperties.HOST, "POST", HttpStatus.CREATED.value(), "Transaction created");
                     return ResponseEntity.status(HttpStatus.CREATED).body(jsonResponse);
                 } else {
                     JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Transaction not created", null, null);
-                    logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Transaction not created");
+                    logService.saveLog(ApplicationProperties.API_PREFIX + "/transactions", ApplicationProperties.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Transaction not created");
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", null, null);
-                logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
+                logService.saveLog(ApplicationProperties.API_PREFIX + "/transactions", ApplicationProperties.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
@@ -126,22 +126,22 @@ public class TransactionController {
                 TransactionDTO updatedTransactionDTO = transactionService.updateTransaction(transactionDTO);
                 if (updatedTransactionDTO != null) {
                     JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Transaction updated", updatedTransactionDTO, null);
-                    logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "PUT", HttpStatus.OK.value(), "Transaction updated");
+                    logService.saveLog(ApplicationProperties.API_PREFIX + "/transactions", ApplicationProperties.HOST, "PUT", HttpStatus.OK.value(), "Transaction updated");
                     return ResponseEntity.ok(jsonResponse);
                 } else {
                     JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Transaction not updated", null, null);
-                    logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Transaction not updated");
+                    logService.saveLog(ApplicationProperties.API_PREFIX + "/transactions", ApplicationProperties.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Transaction not updated");
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", null, null);
-                logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
+                logService.saveLog(ApplicationProperties.API_PREFIX + "/transactions", ApplicationProperties.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
             JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Invalid form", null, errors);
-            logService.saveLog(Constant.API_PREFIX + "/transactions", Constant.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Invalid form");
+            logService.saveLog(ApplicationProperties.API_PREFIX + "/transactions", ApplicationProperties.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Invalid form");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }

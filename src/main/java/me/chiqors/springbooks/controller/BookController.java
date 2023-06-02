@@ -2,7 +2,7 @@ package me.chiqors.springbooks.controller;
 
 import java.util.List;
 
-import me.chiqors.springbooks.config.Constant;
+import me.chiqors.springbooks.config.ApplicationProperties;
 import me.chiqors.springbooks.dto.BookDTO;
 import me.chiqors.springbooks.service.BookService;
 import me.chiqors.springbooks.service.LogService;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping(Constant.API_PREFIX)
+@RequestMapping("${api.prefix}") // cant use ApplicationProperties.API_PREFIX since it is static final
 public class BookController {
     @Autowired
     private FormValidation formValidation;
@@ -92,16 +92,16 @@ public class BookController {
             BookDTO createdBookDTO = bookService.addBook(bookDTO);
             if (createdBookDTO != null) {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.CREATED.value(), "Book created", createdBookDTO, null);
-                logService.saveLog(Constant.API_PREFIX+ "/books", Constant.HOST, "POST", HttpStatus.CREATED.value(), "Book created");
+                logService.saveLog(ApplicationProperties.API_PREFIX+ "/books", ApplicationProperties.HOST, "POST", HttpStatus.CREATED.value(), "Book created");
                 return ResponseEntity.status(HttpStatus.CREATED).body(jsonResponse);
             } else {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create book", null, null);
-                logService.saveLog(Constant.API_PREFIX+ "/books", Constant.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create book");
+                logService.saveLog(ApplicationProperties.API_PREFIX+ "/books", ApplicationProperties.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create book");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
             JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to create book", null, errors);
-            logService.saveLog(Constant.API_PREFIX+ "/books", Constant.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Failed to create book");
+            logService.saveLog(ApplicationProperties.API_PREFIX+ "/books", ApplicationProperties.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Failed to create book");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
@@ -118,16 +118,16 @@ public class BookController {
             BookDTO updatedBookDTO = bookService.updateBook(bookDTO);
             if (updatedBookDTO != null) {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Book updated", updatedBookDTO, null);
-                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookDTO.getBookCode(), Constant.HOST, "PUT", HttpStatus.OK.value(), "Book updated");
+                logService.saveLog(ApplicationProperties.API_PREFIX+ "/books/" + bookDTO.getBookCode(), ApplicationProperties.HOST, "PUT", HttpStatus.OK.value(), "Book updated");
                 return ResponseEntity.ok(jsonResponse);
             } else {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update book", null, null);
-                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookDTO.getBookCode(), Constant.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update book");
+                logService.saveLog(ApplicationProperties.API_PREFIX+ "/books/" + bookDTO.getBookCode(), ApplicationProperties.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update book");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
             JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to update book", null, errors);
-            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookDTO.getBookCode(), Constant.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Failed to update book");
+            logService.saveLog(ApplicationProperties.API_PREFIX+ "/books/" + bookDTO.getBookCode(), ApplicationProperties.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Failed to update book");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
@@ -144,16 +144,16 @@ public class BookController {
             boolean isDeleted = bookService.deleteBook(bookCode);
             if (isDeleted) {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Book deleted", null, null);
-                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.OK.value(), "Book deleted");
+                logService.saveLog(ApplicationProperties.API_PREFIX+ "/books/" + bookCode, ApplicationProperties.HOST, "DELETE", HttpStatus.OK.value(), "Book deleted");
                 return ResponseEntity.ok(jsonResponse);
             } else {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book", null, null);
-                logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book");
+                logService.saveLog(ApplicationProperties.API_PREFIX+ "/books/" + bookCode, ApplicationProperties.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete book");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
             JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to delete book", null, errors);
-            logService.saveLog(Constant.API_PREFIX+ "/books/" + bookCode, Constant.HOST, "DELETE", HttpStatus.BAD_REQUEST.value(), "Failed to delete book");
+            logService.saveLog(ApplicationProperties.API_PREFIX+ "/books/" + bookCode, ApplicationProperties.HOST, "DELETE", HttpStatus.BAD_REQUEST.value(), "Failed to delete book");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }

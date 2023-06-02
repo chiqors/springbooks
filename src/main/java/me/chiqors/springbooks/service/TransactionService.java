@@ -199,10 +199,13 @@ public class TransactionService {
      */
     @Transactional
     public TransactionDTO addTransaction(TransactionDTO dto) {
-        // Generate transaction code. Format: T<day><month><year><hour><minute><second><memberCode>
+        // get member object from memberRepository (with memberCode)
+        Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(dto.getMember().getMemberCode());
+
+        // Generate transaction code. Format: T<day><month><year><hour><minute><second><memberId>
         Date currentDate = new Date();
         String borrowedAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(currentDate);
-        String transactionCode = "T" + new SimpleDateFormat("ddMMyyyyHHmmss").format(currentDate) + dto.getMember().getMemberCode();
+        String transactionCode = "T" + new SimpleDateFormat("ddMMyyyyHHmmss").format(currentDate) + member.getId();
         dto.setTransactionCode(transactionCode);
         dto.setBorrowedAt(borrowedAt);
         dto.setStatus("borrowed");
@@ -211,9 +214,6 @@ public class TransactionService {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try {
             Date estReturnedAt = dateFormat.parse(dto.getEstReturnedAt());
-
-            // get member object from memberRepository (with memberCode)
-            Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(dto.getMember().getMemberCode());
 
             // get Total Books from detailTransactionsDTO.total for each detailTransactionDTO
             int totalBooks = 0;
@@ -286,6 +286,7 @@ public class TransactionService {
             if (transaction.getEstReturnedAt().compareTo(transaction.getReturnedAt()) < 0) {
                 long diff = transaction.getReturnedAt().getTime() - transaction.getEstReturnedAt().getTime();
                 long diffDays = diff / (24 * 60 * 60 * 1000);
+                // long to int, meaning any decimal will be truncated (not rounded)
                 transaction.setTotalFines((int) diffDays * 1000); // Rp. 1.000 per day
             } else {
                 transaction.setTotalFines(0);

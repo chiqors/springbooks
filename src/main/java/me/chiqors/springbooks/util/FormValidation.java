@@ -1,6 +1,6 @@
 package me.chiqors.springbooks.util;
 
-import me.chiqors.springbooks.config.Constant;
+import me.chiqors.springbooks.config.ApplicationProperties;
 import me.chiqors.springbooks.dto.DetailTransactionDTO;
 import me.chiqors.springbooks.dto.MemberDTO;
 import me.chiqors.springbooks.dto.TransactionDTO;
@@ -216,15 +216,15 @@ public class FormValidation {
                             BookDTO bookDTO = bookService.getBookByCode(detailTransactionDTO.getBook().getBookCode());
                             if (bookDTO.getStock() < detailTransactionDTO.getTotal()) {
                                 errors.add("Total Borrowed Book for |" + bookDTO.getTitle() + "| is more than the stock (" + detailTransactionDTO.getTotal() + " > " + bookDTO.getStock() + ")");
-                            } else if (detailTransactionDTO.getTotal() > Constant.ALLOWED_BORROW_SAME_BOOK) {
-                                errors.add("Total Borrowed Book for |" + bookDTO.getTitle() + "| cannot be more than " + Constant.ALLOWED_BORROW_SAME_BOOK + " books. This is library policy.");
+                            } else if (detailTransactionDTO.getTotal() > ApplicationProperties.ALLOWED_BORROW_SAME_BOOK) {
+                                errors.add("Total Borrowed Book for |" + bookDTO.getTitle() + "| cannot be more than " + ApplicationProperties.ALLOWED_BORROW_SAME_BOOK + " books. This is library policy.");
                             }
                         }
                     }
                     totalBorrowedBook += detailTransactionDTO.getTotal() == null ? 0 : detailTransactionDTO.getTotal();
                 }
-                if (totalBorrowedBook > Constant.ALLOWED_TOTAL_BORROW_BOOK) {
-                    errors.add("Total Borrowed Books cannot be more than " + Constant.ALLOWED_TOTAL_BORROW_BOOK + " books. This is library policy.");
+                if (totalBorrowedBook > ApplicationProperties.ALLOWED_TOTAL_BORROW_BOOK) {
+                    errors.add("Total Borrowed Books cannot be more than " + ApplicationProperties.ALLOWED_TOTAL_BORROW_BOOK + " books. This is library policy.");
                 }
             }
         }
