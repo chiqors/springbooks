@@ -2,7 +2,6 @@ package me.chiqors.springbooks.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import me.chiqors.springbooks.config.ApplicationProperties;
-import me.chiqors.springbooks.dto.LogDTO;
 import me.chiqors.springbooks.model.Log;
 import me.chiqors.springbooks.repository.LogRepository;
 import org.apache.commons.io.FileUtils;
@@ -43,29 +42,6 @@ public class LogService {
     public LogService(LogRepository logRepository, ObjectMapper objectMapper) {
         this.logRepository = logRepository;
         this.objectMapper = objectMapper;
-    }
-
-    /**
-     * Converts a Log entity to a LogDTO.
-     *
-     * @param log the Log entity
-     * @return the corresponding LogDTO
-     */
-    public LogDTO convertToDTO(Log log) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        return new LogDTO(formatter.format(log.getTimestamp()), log.getUrlPath(), log.getHostName(),
-                log.getHttpMethod(), log.getHttpCode(), log.getMessage());
-    }
-
-    /**
-     * Converts a LogDTO to a Log entity.
-     *
-     * @param logDTO the LogDTO
-     * @return the corresponding Log entity
-     */
-    public Log convertToEntity(LogDTO logDTO) {
-        return new Log(logDTO.getUrlPath(), logDTO.getHostName(), logDTO.getHttpMethod(),
-                logDTO.getHttpCode(), logDTO.getMessage());
     }
 
     /**
