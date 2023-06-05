@@ -29,7 +29,7 @@ public class TransactionDTO {
     @JsonIgnore
     private Long memberId;
 
-    private String status;
+    private Boolean status;
 
     @JsonProperty("total_books")
     private Integer totalBooks;
@@ -49,7 +49,7 @@ public class TransactionDTO {
     @JsonProperty("member")
     private MemberDTO member;
 
-    public TransactionDTO(String transactionCode, String borrowedAt, String estReturnedAt, String returnedAt, String status, Integer totalBooks, String operatorName, Integer totalFines, String updatedAt, List<DetailTransactionDTO> detailTransactions, MemberDTO memberDTO) {
+    public TransactionDTO(String transactionCode, String borrowedAt, String estReturnedAt, String returnedAt, Boolean status, Integer totalBooks, String operatorName, Integer totalFines, String updatedAt, List<DetailTransactionDTO> detailTransactions, MemberDTO memberDTO) {
         this.transactionCode = transactionCode;
         this.borrowedAt = borrowedAt;
         this.estReturnedAt = estReturnedAt;

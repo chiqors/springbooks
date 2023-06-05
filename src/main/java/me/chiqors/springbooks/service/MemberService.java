@@ -69,6 +69,12 @@ public class MemberService {
         return null;
     }
 
+    /**
+     * Checks if a member code is valid.
+     *
+     * @param memberCode the member code
+     * @return true if the member code is valid, false otherwise
+     */
     public boolean isValidMemberCode(String memberCode) {
         Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
         return member != null;
@@ -128,18 +134,14 @@ public class MemberService {
      * Deletes a member by its member code.
      *
      * @param memberCode the member code
-     * @return true if the member was deleted successfully, false otherwise
      */
-    public boolean deleteMember(String memberCode) {
+    public void deleteMember(String memberCode) {
         Member member = memberRepository.findByMemberCodeAndDeletedIsFalse(memberCode);
         if (member != null) {
             member.setDeleted(true);
             member.setDeletedAt(new Date());
 
             memberRepository.save(member);
-
-            return true;
         }
-        return false;
     }
 }

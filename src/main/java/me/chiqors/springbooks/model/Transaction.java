@@ -46,7 +46,7 @@ public class Transaction {
     private Member member;
 
     @Column(name = "status")
-    private String status;
+    private Boolean status;
 
     @Column(name = "total_books")
     private Integer totalBooks;
@@ -67,7 +67,7 @@ public class Transaction {
 
     // -------------- Methods --------------
 
-    public Transaction(String transactionCode, Date borrowedAt, Date estReturnedAt, Date returnedAt, Member member, String status, int totalBooks, String operatorName, int totalFines, Date updatedAt) {
+    public Transaction(String transactionCode, Date borrowedAt, Date estReturnedAt, Date returnedAt, Member member, Boolean status, Integer totalBooks, String operatorName, int totalFines, Date updatedAt) {
         this.transactionCode = transactionCode;
         this.borrowedAt = borrowedAt;
         this.estReturnedAt = estReturnedAt;

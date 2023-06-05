@@ -25,6 +25,9 @@ public class MemberController {
     @Autowired
     private LogService logService;
 
+    @Autowired
+    private ApplicationProperties applicationProperties;
+
     /**
      * Retrieves all members based on optional filtering, sorting, and pagination parameters.
      *
@@ -90,16 +93,16 @@ public class MemberController {
             MemberDTO createdMemberDTO = memberService.addMember(memberDTO);
             if (createdMemberDTO != null) {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.CREATED.value(), "Member created", createdMemberDTO, null);
-                logService.saveLog(ApplicationProperties.API_PREFIX + "/members", ApplicationProperties.HOST, "POST", HttpStatus.CREATED.value(), "Created member with code: " + createdMemberDTO.getMemberCode());
+                logService.saveLog(applicationProperties.getApiPrefix() + "/members", applicationProperties.getHost(), "POST", HttpStatus.CREATED.value(), "Created member with code: " + createdMemberDTO.getMemberCode());
                 return ResponseEntity.status(HttpStatus.CREATED).body(jsonResponse);
             } else {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create member", null, null);
-                logService.saveLog(ApplicationProperties.API_PREFIX + "/members", ApplicationProperties.HOST, "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create member");
+                logService.saveLog(applicationProperties.getApiPrefix() + "/members", applicationProperties.getHost(), "POST", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to create member");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
             JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to create member", null, errors);
-            logService.saveLog(ApplicationProperties.API_PREFIX + "/members", ApplicationProperties.HOST, "POST", HttpStatus.BAD_REQUEST.value(), "Failed to create member");
+            logService.saveLog(applicationProperties.getApiPrefix() + "/members", applicationProperties.getHost(), "POST", HttpStatus.BAD_REQUEST.value(), "Failed to create member");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
@@ -117,16 +120,16 @@ public class MemberController {
             MemberDTO updatedMemberDTO = memberService.updateMember(memberDTO);
             if (updatedMemberDTO != null) {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Member updated", updatedMemberDTO, null);
-                logService.saveLog(ApplicationProperties.API_PREFIX + "/members", ApplicationProperties.HOST, "PUT", HttpStatus.OK.value(), "Updated member with code: " + updatedMemberDTO.getMemberCode());
+                logService.saveLog(applicationProperties.getApiPrefix() + "/members", applicationProperties.getHost(), "PUT", HttpStatus.OK.value(), "Updated member with code: " + updatedMemberDTO.getMemberCode());
                 return ResponseEntity.ok(jsonResponse);
             } else {
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update member", null, null);
-                logService.saveLog(ApplicationProperties.API_PREFIX + "/members", ApplicationProperties.HOST, "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update member");
+                logService.saveLog(applicationProperties.getApiPrefix() + "/members", applicationProperties.getHost(), "PUT", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update member");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
             JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to update member", null, errors);
-            logService.saveLog(ApplicationProperties.API_PREFIX + "/members", ApplicationProperties.HOST, "PUT", HttpStatus.BAD_REQUEST.value(), "Failed to update member");
+            logService.saveLog(applicationProperties.getApiPrefix() + "/members", applicationProperties.getHost(), "PUT", HttpStatus.BAD_REQUEST.value(), "Failed to update member");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }
@@ -144,17 +147,17 @@ public class MemberController {
             try {
                 memberService.deleteMember(memberCode);
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.OK.value(), "Member deleted", null, null);
-                logService.saveLog(ApplicationProperties.API_PREFIX + "/members/" + memberCode, ApplicationProperties.HOST, "DELETE", HttpStatus.OK.value(), "Deleted member with code: " + memberCode);
+                logService.saveLog(applicationProperties.getApiPrefix() + "/members/" + memberCode, applicationProperties.getHost(), "DELETE", HttpStatus.OK.value(), "Deleted member with code: " + memberCode);
                 return ResponseEntity.ok(jsonResponse);
             } catch (Exception e) {
                 e.printStackTrace();
                 JSONResponse jsonResponse = new JSONResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete member", null, null);
-                logService.saveLog(ApplicationProperties.API_PREFIX + "/members/" + memberCode, ApplicationProperties.HOST, "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete member");
+                logService.saveLog(applicationProperties.getApiPrefix() + "/members/" + memberCode, applicationProperties.getHost(), "DELETE", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to delete member");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(jsonResponse);
             }
         } else {
             JSONResponse jsonResponse = new JSONResponse(HttpStatus.BAD_REQUEST.value(), "Failed to delete member", null, errors);
-            logService.saveLog(ApplicationProperties.API_PREFIX + "/members/" + memberCode, ApplicationProperties.HOST, "DELETE", HttpStatus.BAD_REQUEST.value(), "Failed to delete member");
+            logService.saveLog(applicationProperties.getApiPrefix() + "/members/" + memberCode, applicationProperties.getHost(), "DELETE", HttpStatus.BAD_REQUEST.value(), "Failed to delete member");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(jsonResponse);
         }
     }

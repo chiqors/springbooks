@@ -1,31 +1,26 @@
 package me.chiqors.springbooks.config;
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
+@Getter
 public class ApplicationProperties {
     @Value("${host}")
-    public static String HOST;
-
+    private String host;
     @Value("${api.prefix}")
-    public static String API_PREFIX;
-
+    private String apiPrefix;
     @Value("${allowed.borrow.same.book}")
-    public static Integer ALLOWED_BORROW_SAME_BOOK;
-
+    private Integer allowedBorrowSameBook;
     @Value("${allowed.total.borrow.book}")
-    public static Integer ALLOWED_TOTAL_BORROW_BOOK;
-
+    private Integer allowedTotalBorrowBook;
     @Value("${logs.directory}")
-    public static String LOGS_DIRECTORY;
-
+    private String logsDirectory;
     @Value("${log.file.prefix}")
-    public static String LOG_FILE_PREFIX;
-
+    private String logFilePrefix;
     @Value("${log.file.extension}")
-    public static String LOG_FILE_EXTENSION;
-
+    private String logFileExtension;
     @Value("${max.log.file.size}")
-    public static Integer MAX_LOG_FILE_SIZE;
+    private Integer maxLogFileSize;
 }

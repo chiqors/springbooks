@@ -1,3 +1,8 @@
+/**
+ * The FormValidation class provides utility methods for validating form inputs related to books, members, and transactions.
+ * It includes validation methods for creating, updating, and destroying books, members, and transactions.
+ */
+
 package me.chiqors.springbooks.util;
 
 import me.chiqors.springbooks.config.ApplicationProperties;
@@ -5,7 +10,6 @@ import me.chiqors.springbooks.dto.DetailTransactionDTO;
 import me.chiqors.springbooks.dto.MemberDTO;
 import me.chiqors.springbooks.dto.TransactionDTO;
 import me.chiqors.springbooks.service.BookService;
-
 import me.chiqors.springbooks.dto.BookDTO;
 import me.chiqors.springbooks.service.MemberService;
 import me.chiqors.springbooks.service.TransactionService;
@@ -24,9 +28,17 @@ public class FormValidation {
     @Autowired
     private TransactionService transactionService;
 
+    @Autowired
+    private ApplicationProperties applicationProperties;
+
+    /**
+     * Validates the inputs for creating a book.
+     *
+     * @param bookDTO The BookDTO object containing the book information.
+     * @return A list of validation errors, if any.
+     */
     public List<String> createBookValidation(BookDTO bookDTO) {
         List<String> errors = new ArrayList<>();
-        System.out.println("bookDTO: " + bookDTO);
 
         if (bookDTO.getTitle() == null) {
             errors.add("Title is required");
@@ -56,6 +68,12 @@ public class FormValidation {
         return errors;
     }
 
+    /**
+     * Validates the inputs for updating a book.
+     *
+     * @param bookDTO The BookDTO object containing the book information.
+     * @return A list of validation errors, if any.
+     */
     public List<String> updateBookValidation(BookDTO bookDTO) {
         List<String> errors = new ArrayList<>();
 
@@ -86,6 +104,14 @@ public class FormValidation {
         return errors;
     }
 
+    /**
+     * Validates the input for destroying a book.
+     *
+     * @param bookCode The code of the book to be destroyed.
+     * @return A list of validation
+
+    errors, if any.
+     */
     public List<String> destroyBookValidation(String bookCode) {
         List<String> errors = new ArrayList<>();
 
@@ -101,6 +127,12 @@ public class FormValidation {
         return errors;
     }
 
+    /**
+     * Validates the inputs for creating a member.
+     *
+     * @param memberDTO The MemberDTO object containing the member information.
+     * @return A list of validation errors, if any.
+     */
     public List<String> createMemberValidation(MemberDTO memberDTO) {
         List<String> errors = new ArrayList<>();
 
@@ -127,6 +159,12 @@ public class FormValidation {
         return errors;
     }
 
+    /**
+     * Validates the inputs for updating a member.
+     *
+     * @param memberDTO The MemberDTO object containing the member information.
+     * @return A list of validation errors, if any.
+     */
     public List<String> updateMemberValidation(MemberDTO memberDTO) {
         List<String> errors = new ArrayList<>();
 
@@ -159,6 +197,12 @@ public class FormValidation {
         return errors;
     }
 
+    /**
+     * Validates the input for destroying a member.
+     *
+     * @param memberCode The code of the member to be destroyed.
+     * @return A list of validation errors, if any.
+     */
     public List<String> destroyMemberValidation(String memberCode) {
         List<String> errors = new ArrayList<>();
 
@@ -174,7 +218,15 @@ public class FormValidation {
         return errors;
     }
 
-    public List<String> createTransactionValidation(TransactionDTO transactionDTO) {
+    /**
+     * Validates the inputs for creating a transaction.
+     *
+     * @param transactionDTO The TransactionDTO object containing the transaction information.
+     * @return A list of validation errors, if any.
+     */
+    public List<String>
+
+    createTransactionValidation(TransactionDTO transactionDTO) {
         List<String> errors = new ArrayList<>();
 
         if (transactionDTO.getMember().getMemberCode() == null) {
@@ -216,15 +268,15 @@ public class FormValidation {
                             BookDTO bookDTO = bookService.getBookByCode(detailTransactionDTO.getBook().getBookCode());
                             if (bookDTO.getStock() < detailTransactionDTO.getTotal()) {
                                 errors.add("Total Borrowed Book for |" + bookDTO.getTitle() + "| is more than the stock (" + detailTransactionDTO.getTotal() + " > " + bookDTO.getStock() + ")");
-                            } else if (detailTransactionDTO.getTotal() > ApplicationProperties.ALLOWED_BORROW_SAME_BOOK) {
-                                errors.add("Total Borrowed Book for |" + bookDTO.getTitle() + "| cannot be more than " + ApplicationProperties.ALLOWED_BORROW_SAME_BOOK + " books. This is library policy.");
+                            } else if (detailTransactionDTO.getTotal() > applicationProperties.getAllowedBorrowSameBook()) {
+                                errors.add("Total Borrowed Book for |" + bookDTO.getTitle() + "| cannot be more than " + applicationProperties.getAllowedBorrowSameBook() + " books. This is library policy.");
                             }
                         }
                     }
                     totalBorrowedBook += detailTransactionDTO.getTotal() == null ? 0 : detailTransactionDTO.getTotal();
                 }
-                if (totalBorrowedBook > ApplicationProperties.ALLOWED_TOTAL_BORROW_BOOK) {
-                    errors.add("Total Borrowed Books cannot be more than " + ApplicationProperties.ALLOWED_TOTAL_BORROW_BOOK + " books. This is library policy.");
+                if (totalBorrowedBook > applicationProperties.getAllowedTotalBorrowBook()) {
+                    errors.add("Total Borrowed Books cannot be more than " + applicationProperties.getAllowedTotalBorrowBook() + " books. This is library policy.");
                 }
             }
         }
@@ -232,6 +284,12 @@ public class FormValidation {
         return errors;
     }
 
+    /**
+     * Validates the input for updating a transaction.
+     *
+     * @param transactionDTO The TransactionDTO object containing the transaction information.
+     * @return A list of validation errors, if any.
+     */
     public List<String> updateTransactionValidation(TransactionDTO transactionDTO) {
         List<String> errors = new ArrayList<>();
 
@@ -247,11 +305,15 @@ public class FormValidation {
         return errors;
     }
 
+    /**
+     * Checks if the given date is in a valid format (yyyy-MM-dd).
+     *
+     * @param date The date to validate.
+     * @return True if the date is in a valid format, false otherwise.
+     */
     private boolean isValidDateFormat(String date) {
-        // Define the regular expression pattern for the format "YYYY-MM-DD"
-        String pattern = "\\d{4}-\\d{2}-\\d{2}";
-
-        // Check if the date matches the pattern
-        return date.matches(pattern);
+        // Regular expression for yyyy-MM-dd format
+        String dateFormatRegex = "\\d{4}-\\d{2}-\\d{2}";
+        return date.matches(dateFormatRegex);
     }
 }

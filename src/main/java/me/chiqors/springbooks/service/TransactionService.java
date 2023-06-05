@@ -85,6 +85,12 @@ public class TransactionService {
         );
     }
 
+    /**
+     * Converts a Book entity to a BookDTO.
+     *
+     * @param book the Book entity
+     * @return the BookDTO
+     */
     private BookDTO convertBookToDTO(Book book) {
         String publishedAt = new SimpleDateFormat("yyyy-MM-dd").format(book.getPublishedAt());
         String registeredAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(book.getRegisteredAt());
@@ -101,6 +107,12 @@ public class TransactionService {
         );
     }
 
+    /**
+     * Converts a Member entity to a MemberDTO.
+     *
+     * @param member the Member entity
+     * @return the MemberDTO
+     */
     private MemberDTO convertMemberToDTO(Member member) {
         String registeredAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(member.getRegisteredAt());
         String updatedAt = member.getUpdatedAt() == null ? null : new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(member.getUpdatedAt());
@@ -186,6 +198,12 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Checks if a transaction code is valid.
+     *
+     * @param transactionCode the transaction code
+     * @return true if the transaction code is valid, false otherwise
+     */
     public boolean isValidTransactionCode(String transactionCode) {
         Transaction transaction = transactionRepository.findByTransactionCode(transactionCode);
         return transaction != null;
@@ -208,7 +226,7 @@ public class TransactionService {
         String transactionCode = "T" + new SimpleDateFormat("ddMMyyyyHHmmss").format(currentDate) + member.getId();
         dto.setTransactionCode(transactionCode);
         dto.setBorrowedAt(borrowedAt);
-        dto.setStatus("borrowed");
+        dto.setStatus(false);
         dto.setTotalFines(0);
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -277,8 +295,8 @@ public class TransactionService {
     public TransactionDTO updateTransaction(TransactionDTO transactionDTO) {
         Transaction transaction = transactionRepository.findByTransactionCode(transactionDTO.getTransactionCode());
 
-        if (transaction.getStatus().equals("borrowed")) {
-            transaction.setStatus("returned");
+        if (!transaction.getStatus()) {
+            transaction.setStatus(true);
             transaction.setReturnedAt(new Date());
             transaction.setUpdatedAt(new Date());
 
